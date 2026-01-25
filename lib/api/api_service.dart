@@ -4,73 +4,106 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 class ApiService {
-  final String _baseUrl = "https://dap-backend-go.onrender.com";
-  final String _mcpBaseUrl = "https://mcphelperpy.onrender.com";
+  final String _goBaseUrl = "https://dap-backend-go.onrender.com";
+  //final String _goBaseUrl = "http://localhost:8080";
 
-  // Generate a unique ID for this session
+  final String _mcpBaseUrl = "https://mcphelperpy.onrender.com";
+  //final String _mcpBaseUrl = "http://127.0.0.1:8000";
+
   final String _sessionId = const Uuid().v4();
 
-  // --- 1. CHAT (Talks to Go Backend) ---
-  Future<String> sendMessage(String message) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/chat'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'message': message,
-          'conversation_id': _sessionId, // Identify this user session
-        }),
-      );
+  /* -----------------------------
+   * 1. MCP: LIST TOOLS
+   * ----------------------------- */
+  Future<List<dynamic>> fetchTools() async {
+    final res = await http.get(Uri.parse("$_mcpBaseUrl/tools"));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['reply'] ?? "No response from AI.";
-      } else {
-        return "Error: Server returned ${response.statusCode}";
-      }
-    } catch (e) {
-      return "Connection Error: $e";
+    if (res.statusCode != 200) {
+      throw Exception("Failed to fetch tools");
     }
+
+    final data = jsonDecode(res.body);
+    return data["tools"];
   }
 
-  // --- 2. TOOLS (Talks to Python MCP) ---
-  Future<String> processFileWithMCP(String fileName, String base64Content) async {
-    try {
-      // CHANGED: We now hit the custom "Direct Bridge" endpoint
-      final url = '$_mcpBaseUrl/api/simple-upload';
-      
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "filename": fileName,
-          "file_base64": base64Content
-        }),
-      );
+  /* -----------------------------
+   * 2. MCP: UPLOAD DATASET
+   * ----------------------------- */
+  Future<Map<String, dynamic>> uploadDataset(
+    String filename,
+    String base64Content,
+  ) async {
+    final res = await http.post(
+      Uri.parse("$_mcpBaseUrl/upload"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"filename": filename, "file_base64": base64Content}),
+    );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // The Python API returns { "status": "success", "analysis": "..." }
-        return data['analysis'] ?? "No analysis returned.";
-      } else {
-        return "Error: Python Server returned ${response.statusCode} - ${response.body}";
-      }
-    } catch (e) {
-      return "Could not connect to Analysis Tools. (Error: $e)";
+    if (res.statusCode != 200) {
+      throw Exception("Dataset upload failed: ${res.body}");
     }
+
+    return jsonDecode(res.body);
   }
 
-  // Helper to send file content 
-  Future<String> sendFileContext(String fileName, String fileContent) async {
-    // We wrap the file content in a prompt so the AI knows what to do
-    final prompt =
-        """
-        I am uploading a file named '$fileName'. 
-        Here is the data content:
-        $fileContent
+  /* -----------------------------
+   * 3. MCP: EXECUTE TOOL
+   * ----------------------------- */
+  Future<Map<String, dynamic>> executeTool({
+    required String datasetId,
+    required String tool,
+    Map<String, dynamic> args = const {},
+  }) async {
+    final res = await http.post(
+      Uri.parse("$_mcpBaseUrl/execute"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"dataset_id": datasetId, "tool": tool, "args": args}),
+    );
 
-        Please analyze this data and give me a brief summary of what it contains.
-        """;
-    return sendMessage(prompt);
+    if (res.statusCode != 200) {
+      throw Exception("Tool execution failed: ${res.body}");
+    }
+
+    return jsonDecode(res.body);
+  }
+
+  /* -----------------------------
+   * 4. GO BACKEND: EXPLAIN RESULT
+   * ----------------------------- */
+  Future<String> explainResult({
+    required String userIntent,
+    required String toolName,
+    required Map<String, dynamic> toolResult,
+  }) async {
+    final res = await http.post(
+      Uri.parse("$_goBaseUrl/chat"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "conversation_id": _sessionId,
+        "message":
+            """
+User intent:
+$userIntent
+
+Selected tool:
+$toolName
+
+Tool output (JSON):
+${jsonEncode(toolResult)}
+
+Instructions:
+- Analyze the result
+- Explain clearly
+- Do NOT ask follow-up questions
+""",
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      return "AI explanation failed (${res.statusCode})";
+    }
+
+    final data = jsonDecode(res.body);
+    return data["reply"] ?? "No explanation generated.";
   }
 }

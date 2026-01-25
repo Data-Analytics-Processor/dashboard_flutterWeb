@@ -1,11 +1,9 @@
 // lib/pages/ChatPage.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart'; 
+import 'package:file_picker/file_picker.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
-import 'package:dashboard_flutter/services/stats_service.dart';
-import 'package:dashboard_flutter/api/api_service.dart'; 
-import 'package:dashboard_flutter/services/report_service.dart';
+import 'package:dashboard_flutter/api/api_service.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -15,330 +13,481 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final TextEditingController _controller = TextEditingController();
-  final ApiService _apiService = ApiService(); 
-  final ScrollController _scrollController = ScrollController(); 
+  final ApiService _api = ApiService();
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController();
 
-  // Initial system message is hidden from UI usually, but we keep it for logic
-  final List<Map<String, String>> _messages = [
-    {'role': 'ai', 'content': 'System initialized. Ready.'}
-  ];
+  bool _isLoading = false;
 
-  bool _isLoading = false; 
-  String? _activeTool; 
+  // MCP context
+  String? _datasetId;
+  String? _selectedTool;
+  List<dynamic> _tools = [];
 
-  // Check if the chat is "fresh" (only has system message)
-  bool get _isChatEmpty => _messages.length <= 1;
+  // Pending upload (before send)
+  PlatformFile? _pendingFile;
 
-  // --- 1. HANDLE TEXT SENDING ---
-  void _handleSend() async {
-    if (_controller.text.trim().isEmpty) return;
+  final List<_ChatMessage> _messages = [];
 
-    final userText = _controller.text;
-    _controller.clear(); 
-    
-    setState(() {
-      _messages.add({'role': 'user', 'content': userText});
-      _isLoading = true; 
-    });
-    // If we were in empty state, we are now in chat state, so scroll isn't attached yet
-    // Wait one frame for the list to build
-    await Future.delayed(const Duration(milliseconds: 100));
-    _scrollToBottom();
-
-    StatsService().incrementQueryCount();
-
-    final aiResponse = await _apiService.sendMessage(userText);
-
-    if (mounted) { 
-      setState(() {
-        _messages.add({'role': 'ai', 'content': aiResponse});
-        _isLoading = false;
-      });
-      _scrollToBottom();
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadTools();
   }
 
- // --- 2. FILE UPLOAD FLOW ---
-  void _pickAndUploadFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'xls', 'pdf'], 
-      withData: true,
+  Future<void> _loadTools() async {
+    final tools = await _api.fetchTools();
+    setState(() => _tools = tools);
+  }
+
+  /* -----------------------------
+   * PLUS BUTTON → COMPOSER
+   * ----------------------------- */
+  void _openComposer() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: kSurfaceBlack,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _Composer(
+        tools: _tools,
+        onFilePicked: (file) => _pendingFile = file,
+        onToolSelected: (tool) => _selectedTool = tool,
+      ),
     );
 
-    if (result != null) {
-      PlatformFile file = result.files.first;
-      String fileName = file.name;
-      String base64File = base64Encode(file.bytes!); 
+    setState(() {});
+  }
 
-      ReportService().addReport(
-        fileName.split('.').first, 
-        utf8.decode(file.bytes!, allowMalformed: true),
-        fileName.split('.').last
+  /* -----------------------------
+   * SEND MESSAGE (ONE SHOT)
+   * ----------------------------- */
+  Future<void> _handleSend() async {
+    if (_pendingFile == null && _textController.text.trim().isEmpty) return;
+
+    final userText = _textController.text.trim();
+    _textController.clear();
+
+    // Add user message (with file stack)
+    setState(() {
+      _messages.add(
+        _ChatMessage.user(
+          text: userText,
+          file: _pendingFile,
+          tool: _selectedTool,
+        ),
       );
+      _isLoading = true;
+    });
 
-      setState(() {
-        _messages.add({'role': 'user', 'content': '📂 Uploading $fileName...'});
-        _isLoading = true;
-        _activeTool = "Analyzing file structure..."; 
-      });
-      await Future.delayed(const Duration(milliseconds: 100));
-      _scrollToBottom();
+    _scrollToBottom();
 
-      String analysisResult = await _apiService.processFileWithMCP(fileName, base64File);
-
-      setState(() {
-        _activeTool = "Generating insights...";
-      });
-
-      String finalAiResponse = await _apiService.sendMessage(
-        "I have just run the 'upload_file' tool on '$fileName'.\n"
-        "Here is the technical output from the tool:\n"
-        "```\n$analysisResult\n```\n"
-        "Please explain this data to me simply."
-      );
-
-      setState(() {
-        _messages.add({'role': 'ai', 'content': finalAiResponse});
-        _isLoading = false;
-        _activeTool = null; 
-      });
-      _scrollToBottom();
+    // ---- Upload file if exists ----
+    if (_pendingFile != null) {
+      final base64File = base64Encode(_pendingFile!.bytes!);
+      final upload = await _api.uploadDataset(_pendingFile!.name, base64File);
+      _datasetId = upload["dataset_id"];
     }
+
+    // ---- Execute tool if selected ----
+    Map<String, dynamic>? toolResult;
+    if (_selectedTool != null && _datasetId != null) {
+      final result = await _api.executeTool(
+        datasetId: _datasetId!,
+        tool: _selectedTool!,
+        args: const {},
+      );
+      toolResult = result["result"];
+    }
+
+    // check if tool execution atleast happened
+    if (_selectedTool != null && toolResult != null) {
+      _messages.add(
+        _ChatMessage.ai(" YES! Tool `$_selectedTool` executed successfully."),
+      );
+    }
+
+    // ---- Ask AI to explain ----
+    final reply = await _api.explainResult(
+      userIntent: userText.isEmpty ? "Explain the analysis result" : userText,
+      toolName: _selectedTool ?? "none",
+      toolResult: toolResult ?? {},
+    );
+
+    setState(() {
+      _messages.add(
+        _ChatMessage.ai(
+          reply.trim().isEmpty
+              ? "⚠️ Analysis completed, but no explanation was returned."
+              : reply,
+        ),
+      );
+      _isLoading = false;
+      _pendingFile = null;
+      _selectedTool = null;
+    });
+
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
+  /* -----------------------------
+   * UI
+   * ----------------------------- */
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          // --- HEADER (Simple) ---
-          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            alignment: Alignment.centerLeft,
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.white10)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.auto_awesome, color: kNeonGreen, size: 20),
-                const SizedBox(width: 12),
-                Text(
-                  _activeTool ?? "AI Data Analyst",
-                  style: TextStyle(
-                    color: _activeTool != null ? kNeonGreen : Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // --- MAIN CONTENT AREA ---
-          Expanded(
-            child: _isChatEmpty ? _buildEmptyState() : _buildChatList(),
-          ),
-
-          // --- INPUT AREA (Always at bottom) ---
-          _buildInputArea(),
+          _buildHeader(),
+          Expanded(child: _buildChat()),
+          _buildInputBar(),
         ],
       ),
     );
   }
 
-  // --- 1. THE "NEW FRESH CHAT" CENTER VIEW ---
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildHeader() {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white10)),
+      ),
+      child: const Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: kNeonGreen.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.analytics_rounded, size: 64, color: kNeonGreen),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            "What data are we analyzing today?",
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            "Upload Excel or PDF files to get started.",
-            style: TextStyle(color: kTextGrey),
-          ),
-          const SizedBox(height: 40),
-          
-          // BIG UPLOAD BUTTON
-          InkWell(
-            onTap: _pickAndUploadFile,
-            borderRadius: BorderRadius.circular(50),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              decoration: BoxDecoration(
-                color: kNeonGreen, // Filled button for prominence
-                borderRadius: BorderRadius.circular(50),
-                boxShadow: [
-                  BoxShadow(color: kNeonGreen.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 4))
-                ]
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.upload_file, color: Colors.black),
-                  SizedBox(width: 12),
-                  Text(
-                    "Upload to Analyze File",
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          Icon(Icons.auto_awesome, color: kNeonGreen),
+          SizedBox(width: 12),
+          Text("AI Data Analyst", style: TextStyle(color: Colors.white)),
         ],
       ),
     );
   }
 
-  // --- 2. THE CHAT LIST VIEW ---
-  Widget _buildChatList() {
+  Widget _buildChat() {
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(40),
+      padding: const EdgeInsets.all(24),
       itemCount: _messages.length + (_isLoading ? 1 : 0),
       itemBuilder: (context, index) {
-        // Skip system message
-        if (index == 0) return const SizedBox.shrink();
-
-        if (index == _messages.length) {
-          return const Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 20, left: 12),
-              child: SizedBox(
-                height: 20, width: 20,
-                child: CircularProgressIndicator(color: kNeonGreen, strokeWidth: 2),
-              ),
-            ),
-          );
+        if (index == _messages.length && _isLoading) {
+          return const _TypingIndicator();
         }
-
-        final msg = _messages[index];
-        final isUser = msg['role'] == 'user';
-        
-        return Align(
-          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 700),
-            margin: const EdgeInsets.only(bottom: 24),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: isUser ? kSurfaceBlack : Colors.transparent, // User bubbles are subtle
-              borderRadius: BorderRadius.circular(12),
-              border: isUser ? Border.all(color: Colors.white10) : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!isUser) ...[
-                  const Row(
-                    children: [
-                      Icon(Icons.auto_awesome, size: 16, color: kNeonGreen),
-                      SizedBox(width: 8),
-                      Text("AI Analyst", style: TextStyle(color: kNeonGreen, fontSize: 12, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                Text(
-                  msg['content']!,
-                  style: TextStyle(
-                    color: isUser ? Colors.white : const Color(0xFFE0E0E0),
-                    height: 1.6,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        if (index >= _messages.length) return const SizedBox.shrink();
+        return _messages[index].build();
       },
     );
   }
 
-  // --- 3. THE "SMOOTH" INPUT AREA ---
-  Widget _buildInputArea() {
+  Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       decoration: const BoxDecoration(
-        color: Colors.black,
         border: Border(top: BorderSide(color: Colors.white10)),
       ),
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 900), // Limit width on large screens
+          constraints: const BoxConstraints(maxWidth: 900),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: kSurfaceBlack,
-            borderRadius: BorderRadius.circular(50), // Fully rounded pill
-            border: Border.all(color: Colors.white10),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            children: [
-              // Small Upload Icon inside the bar
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline, color: kTextGrey),
-                tooltip: "Upload File",
-                onPressed: _isLoading ? null : _pickAndUploadFile,
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(999), // pill
+            border: Border.all(color: kNeonGreen.withOpacity(0.4), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: kNeonGreen.withOpacity(0.15),
+                blurRadius: 18,
+                spreadRadius: 1,
               ),
-              
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  onSubmitted: (_) => _handleSend(),
-                  style: const TextStyle(color: Colors.white),
-                  cursorColor: kNeonGreen,
-                  decoration: const InputDecoration(
-                    hintText: "Ask a follow-up question...",
-                    hintStyle: TextStyle(color: Color(0xFF666666)),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 🔹 PREVIEW ROW (file + tool)
+              if (_pendingFile != null || _selectedTool != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (_pendingFile != null)
+                        _PreviewChip(
+                          icon: Icons.insert_drive_file,
+                          label: _pendingFile!.name,
+                          onRemove: () {
+                            setState(() => _pendingFile = null);
+                          },
+                        ),
+                      if (_selectedTool != null)
+                        _PreviewChip(
+                          icon: Icons.analytics,
+                          label: "Tool: $_selectedTool",
+                          onRemove: () {
+                            setState(() => _selectedTool = null);
+                          },
+                        ),
+                    ],
                   ),
                 ),
+
+              // 🔹 INPUT ROW
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.add, color: kTextGrey),
+                    onPressed: _openComposer,
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: kNeonGreen,
+                      decoration: const InputDecoration(
+                        hintText: "Add context or instructions…",
+                        hintStyle: TextStyle(color: kTextGrey),
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                      onSubmitted: (_) => _handleSend(),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _isLoading ? null : _handleSend,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: kNeonGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_upward,
+                        size: 18,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              
-              // Send Button
-              Container(
-                margin: const EdgeInsets.only(right: 4),
-                decoration: const BoxDecoration(
-                  color: kNeonGreen, // Green circle
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_upward, color: Colors.black),
-                  onPressed: _isLoading ? null : _handleSend,
-                ),
-              )
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/* =============================
+ * SUPPORTING WIDGETS
+ * ============================= */
+
+class _ChatMessage {
+  final bool isUser;
+  final String text;
+  final PlatformFile? file;
+  final String? tool;
+
+  _ChatMessage.user({required this.text, this.file, this.tool}) : isUser = true;
+
+  _ChatMessage.ai(this.text) : isUser = false, file = null, tool = null;
+
+  Widget build() {
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(maxWidth: 650),
+        decoration: BoxDecoration(
+          color: isUser ? kSurfaceBlack : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: isUser ? Border.all(color: Colors.white10) : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (file != null) _FileChip(file!.name),
+            if (tool != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  "Tool: $tool",
+                  style: const TextStyle(color: kNeonGreen, fontSize: 12),
+                ),
+              ),
+            Text(
+              text,
+              style: const TextStyle(color: Colors.white, height: 1.6),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FileChip extends StatelessWidget {
+  final String name;
+  const _FileChip(this.name);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.insert_drive_file, size: 14, color: kNeonGreen),
+          const SizedBox(width: 6),
+          Text(name, style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypingIndicator extends StatelessWidget {
+  const _TypingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, bottom: 16),
+      child: Row(
+        children: const [
+          SizedBox(
+            width: 6,
+            height: 6,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: kNeonGreen,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          Text("Analyzing…", style: TextStyle(color: kTextGrey, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _Composer extends StatelessWidget {
+  final List<dynamic> tools;
+  final Function(PlatformFile) onFilePicked;
+  final Function(String) onToolSelected;
+
+  const _Composer({
+    required this.tools,
+    required this.onFilePicked,
+    required this.onToolSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Add to message", style: TextStyle(color: Colors.white)),
+          const SizedBox(height: 16),
+
+          ListTile(
+            leading: const Icon(Icons.upload_file, color: kNeonGreen),
+            title: const Text(
+              "Upload file",
+              style: TextStyle(color: Colors.white),
+            ),
+            onTap: () async {
+              final res = await FilePicker.platform.pickFiles(
+                type: FileType.custom,
+                allowedExtensions: ['xlsx', 'xls'],
+                withData: true,
+              );
+              if (res != null) onFilePicked(res.files.first);
+              Navigator.pop(context);
+            },
+          ),
+
+          const Divider(color: Colors.white10),
+
+          ...tools.map(
+            (t) => ListTile(
+              leading: const Icon(Icons.analytics, color: kNeonGreen),
+              title: Text(
+                t["name"],
+                style: const TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                onToolSelected(t["name"]);
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onRemove;
+
+  const _PreviewChip({
+    required this.icon,
+    required this.label,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: kSurfaceBlack,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: kNeonGreen),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close, size: 14, color: kTextGrey),
+          ),
+        ],
       ),
     );
   }
