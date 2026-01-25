@@ -28,21 +28,6 @@ class SideNavBar extends StatelessWidget {
           // --- LOGO ---
           Row(
             children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: kNeonGreen,
-                  shape: BoxShape.circle, // Rounded logo dot
-                  boxShadow: [
-                    BoxShadow(
-                      color: kNeonGreen.withOpacity(0.6),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    )
-                  ],
-                ),
-              ),
               const SizedBox(width: 12),
               Text(
                 'Data Analytics',
@@ -59,7 +44,7 @@ class SideNavBar extends StatelessWidget {
           const SizedBox(height: 60),
 
           // --- NAVIGATION ---
-          Text("MENU", style: GoogleFonts.inter(color: Colors.grey[800], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+          Text("MENU", style: GoogleFonts.spaceGrotesk(color: Colors.grey[800], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
           const SizedBox(height: 16),
           
           _buildNavItem(0, "Dashboard", Icons.grid_view_rounded),

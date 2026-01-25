@@ -43,14 +43,21 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  // This state controls the active page
+  // State: Active Tab Index
   int _selectedIndex = 0;
 
-  // The List of pages to display
-  final List<Widget> _pages = [
-    const HomePage(),
+  // Method to switch tabs (passed to children)
+  void switchTab(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  // Getter for Pages (allows us to pass 'switchTab' to HomePage)
+  List<Widget> get _pages => [
+    HomePage(onNavigate: switchTab), 
     const ChatPage(),
-    const SavedAnalyticsPage(),    
+    const SavedAnalyticsPage(),
   ];
 
   @override
@@ -60,25 +67,21 @@ class _MainLayoutState extends State<MainLayout> {
         children: [
           // --- LEFT PANEL (1/5 WIDTH) ---
           Expanded(
-            flex: 2, // 20% Width
+            flex: 2, 
             child: SideNavBar(
               selectedIndex: _selectedIndex,
-              onTabSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
+              onTabSelected: switchTab, 
             ),
           ),
 
           // --- RIGHT PANEL (4/5 WIDTH) ---
           Expanded(
-            flex: 8, // 80% Width
+            flex: 8, 
             child: Container(
-              color: Colors.black, // Pure black background for content
+              color: Colors.black,
               child: IndexedStack(
                 index: _selectedIndex,
-                children: _pages,
+                children: _pages, 
               ),
             ),
           ),
