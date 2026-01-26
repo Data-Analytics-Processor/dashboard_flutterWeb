@@ -4,11 +4,14 @@ import 'dart:convert';
 import 'dart:html' as html; // Only works on Flutter Web
 import 'package:flutter/foundation.dart';
 
+// Packages for download options
+import 'package:excel/excel.dart';
+
 // 1. The Model
 class Report {
   final String id;
   final String name;
-  final String type; // 'CSV', 'Excel', 'PDF'
+  final String type; // 'Excel', 'PDF', 'TXT', etc.
   final String size;
   final DateTime date;
   final List<int> data; // The actual file bytes
@@ -52,13 +55,41 @@ class ReportService {
     reportsNotifier.value = [newReport, ...reportsNotifier.value];
   }
 
-  // Trigger Download in Browser
-  void downloadReport(Report report) {
+ // --- DOWNLOADERS ---
+
+  // 1. Text / CSV (Original)
+  void downloadAsTxt(Report report) {
+    _triggerWebDownload(report.data, "${report.name}.txt", "text/plain");
+  }  
+
+  // 2. Excel
+  Future<void> downloadAsExcel(Report report) async {
+    var excel = Excel.createExcel();
+    Sheet sheetObject = excel['Sheet1'];
+    
+    final textContent = utf8.decode(report.data);
+    
+    // Split by lines and add as rows
+    List<String> lines = const LineSplitter().convert(textContent);
+    for (var line in lines) {
+      // Split by comma for CSV-like structure, or just put whole line in one cell
+      List<String> cells = line.split(',');
+      sheetObject.appendRow(cells.map((e) => TextCellValue(e.trim())).toList());
+    }
+    final bytes = excel.encode();
+    
+    if (bytes != null) {
+      _triggerWebDownload(bytes, "${report.name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+  }
+
+  // Helper for Browser Download
+  void _triggerWebDownload(List<int> bytes, String fileName, String mimeType) {
     if (kIsWeb) {
-      final blob = html.Blob([report.data]);
+      final blob = html.Blob([bytes], mimeType);
       final url = html.Url.createObjectUrlFromBlob(blob);
       html.AnchorElement(href: url)
-        ..setAttribute("download", "${report.name}.${report.type.toLowerCase()}")
+        ..setAttribute("download", fileName)
         ..click();
       html.Url.revokeObjectUrl(url);
     }

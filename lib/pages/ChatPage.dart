@@ -1,9 +1,11 @@
 // lib/pages/ChatPage.dart
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import 'package:dashboard_flutter/api/api_service.dart';
+import 'package:dashboard_flutter/services/report_service.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -21,7 +23,7 @@ class _ChatPageState extends State<ChatPage> {
 
   // MCP context
   String? _activeFilePath; // The file currently being analyzed
-  String? _selectedTool;   // User's manual tool override (optional)
+  String? _selectedTool; // User's manual tool override (optional)
   List<dynamic> _tools = [];
 
   // Pending upload (before send)
@@ -88,7 +90,10 @@ class _ChatPageState extends State<ChatPage> {
       if (_pendingFile != null) {
         final base64File = base64Encode(_pendingFile!.bytes!);
         // The API now returns the server-side file path
-        _activeFilePath = await _api.uploadDataset(_pendingFile!.name, base64File);
+        _activeFilePath = await _api.uploadDataset(
+          _pendingFile!.name,
+          base64File,
+        );
       }
 
       // 3. Construct Message with Context
@@ -110,7 +115,6 @@ class _ChatPageState extends State<ChatPage> {
           _ChatMessage.ai(result["response"] ?? "No response generated."),
         );
       });
-
     } catch (e) {
       setState(() {
         _messages.add(_ChatMessage.ai("⚠️ Error: $e"));
@@ -181,7 +185,7 @@ class _ChatPageState extends State<ChatPage> {
           return const _TypingIndicator();
         }
         if (index >= _messages.length) return const SizedBox.shrink();
-        return _messages[index].build();
+        return _messages[index].build(context);
       },
     );
   }
@@ -299,36 +303,139 @@ class _ChatMessage {
 
   _ChatMessage.ai(this.text) : isUser = false, file = null, tool = null;
 
-  Widget build() {
+  Widget build(BuildContext context) {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        padding: const EdgeInsets.all(16),
-        constraints: const BoxConstraints(maxWidth: 650),
-        decoration: BoxDecoration(
-          color: isUser ? kSurfaceBlack : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: isUser ? Border.all(color: Colors.white10) : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (file != null) _FileChip(file!.name),
-            if (tool != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  "Tool: $tool",
-                  style: const TextStyle(color: kNeonGreen, fontSize: 12),
-                ),
+        margin: const EdgeInsets.only(bottom: 24),
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: isUser ? _buildUserMessage() : _buildAiMessage(context),
+      ),
+    );
+  }
+
+  Widget _buildUserMessage() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceBlack,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (file != null) _FileChip(file!.name),
+          if (tool != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "Requested Tool: $tool",
+                style: const TextStyle(color: kNeonGreen, fontSize: 12),
               ),
-            Text(
-              text,
-              style: const TextStyle(color: Colors.white, height: 1.6),
             ),
-          ],
-        ),
+          Text(text, style: const TextStyle(color: Colors.white, height: 1.6)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiMessage(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurfaceBlack,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kNeonGreen.withOpacity(0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: kNeonGreen.withOpacity(0.05),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: kNeonGreen.withOpacity(0.1),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
+            ),
+          ),
+
+          const Divider(height: 1, color: Colors.white10),
+
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                height: 1.6,
+                fontSize: 15,
+              ),
+            ),
+          ),
+
+          const Divider(height: 1, color: Colors.white10),
+
+          // Footer with Save Button
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    // SAVE LOGIC
+                    final name = "Report_${DateFormat('dd_MMM_yy_HH_mm').format(DateTime.now())}";
+
+                    ReportService().addReport(name, text, "txt");
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Saved '$name' to Reports"),
+                        backgroundColor: kNeonGreen,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        duration: const Duration(milliseconds: 1500),
+                        action: SnackBarAction(
+                          label: "VIEW",
+                          textColor: Colors.black,
+                          onPressed: () {
+                            // Navigation logic would go here if needed
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.save_alt_rounded, size: 16),
+                  label: const Text("Save Report"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.transparent,
+                    side: const BorderSide(color: Colors.white24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -448,7 +555,7 @@ class _Composer extends StatelessWidget {
             (t) => ListTile(
               leading: const Icon(Icons.analytics, color: kNeonGreen),
               title: Text(
-                _formatToolName(t["name"]), 
+                _formatToolName(t["name"]),
                 style: const TextStyle(color: Colors.white),
               ),
               subtitle: Text(
