@@ -2,10 +2,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
-  //final String _baseUrl = "https://backend-py-edco.onrender.com";
-  final String _baseUrl = "http://127.0.0.1:5000";
+  static const String _localUrl = "http://127.0.0.1:5000";
+  // 👇 REPLACE THIS with your actual Backend URL from Render dashboard
+  static const String _prodUrl = "https://backend-py-edco.onrender.com"; 
+
+  // 2. Auto-switch logic
+  final String _baseUrl = kReleaseMode ? _prodUrl : _localUrl;
 
   final String _sessionId = const Uuid().v4();
   String get sessionId => _sessionId;
