@@ -4,19 +4,17 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 class ApiService {
-  final String _goBaseUrl = "https://dap-backend-go.onrender.com";
-  //final String _goBaseUrl = "http://localhost:8080";
-
-  final String _mcpBaseUrl = "https://mcphelperpy.onrender.com";
-  //final String _mcpBaseUrl = "http://127.0.0.1:8000";
+  //final String _baseUrl = "https://backend-py-edco.onrender.com";
+  final String _baseUrl = "http://127.0.0.1:5000";
 
   final String _sessionId = const Uuid().v4();
+  String get sessionId => _sessionId;
 
   /* -----------------------------
-   * 1. MCP: LIST TOOLS
+   * 1. GET TOOLS 
    * ----------------------------- */
   Future<List<dynamic>> fetchTools() async {
-    final res = await http.get(Uri.parse("$_mcpBaseUrl/tools"));
+    final res = await http.get(Uri.parse("$_baseUrl/api/v1/chatbot/tools"));
 
     if (res.statusCode != 200) {
       throw Exception("Failed to fetch tools");
@@ -27,83 +25,66 @@ class ApiService {
   }
 
   /* -----------------------------
-   * 2. MCP: UPLOAD DATASET
+   * 2. UPLOAD DATASET (Base64 -> Multipart)
    * ----------------------------- */
-  Future<Map<String, dynamic>> uploadDataset(
+  Future<String> uploadDataset(
     String filename,
     String base64Content,
   ) async {
-    final res = await http.post(
-      Uri.parse("$_mcpBaseUrl/upload"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"filename": filename, "file_base64": base64Content}),
+    // 1. Decode Base64 to bytes
+    List<int> fileBytes = base64Decode(base64Content);
+
+    // 2. Prepare Multipart Request
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse("$_baseUrl/api/v1/chatbot/upload"),
     );
+
+    // 3. Add the file
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        fileBytes,
+        filename: filename,
+      ),
+    );
+
+    // 4. Send
+    final streamedResponse = await request.send();
+    final res = await http.Response.fromStream(streamedResponse);
 
     if (res.statusCode != 200) {
       throw Exception("Dataset upload failed: ${res.body}");
     }
 
-    return jsonDecode(res.body);
-  }
-
-  /* -----------------------------
-   * 3. MCP: EXECUTE TOOL
-   * ----------------------------- */
-  Future<Map<String, dynamic>> executeTool({
-    required String datasetId,
-    required String tool,
-    Map<String, dynamic> args = const {},
-  }) async {
-    final res = await http.post(
-      Uri.parse("$_mcpBaseUrl/execute"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"dataset_id": datasetId, "tool": tool, "args": args}),
-    );
-
-    if (res.statusCode != 200) {
-      throw Exception("Tool execution failed: ${res.body}");
-    }
-
-    return jsonDecode(res.body);
-  }
-
-  /* -----------------------------
-   * 4. GO BACKEND: EXPLAIN RESULT
-   * ----------------------------- */
-  Future<String> explainResult({
-    required String userIntent,
-    required String toolName,
-    required Map<String, dynamic> toolResult,
-  }) async {
-    final res = await http.post(
-      Uri.parse("$_goBaseUrl/chat"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "conversation_id": _sessionId,
-        "message":
-            """
-User intent:
-$userIntent
-
-Selected tool:
-$toolName
-
-Tool output (JSON):
-${jsonEncode(toolResult)}
-
-Instructions:
-- Analyze the result
-- Explain clearly
-- Do NOT ask follow-up questions
-""",
-      }),
-    );
-
-    if (res.statusCode != 200) {
-      return "AI explanation failed (${res.statusCode})";
-    }
-
+    // 5. Return the 'file_path' that the backend needs for context
     final data = jsonDecode(res.body);
-    return data["reply"] ?? "No explanation generated.";
+    return data["file_path"];
+  }
+
+  /* -----------------------------
+   * 3. CHAT (The Unified Brain)
+   * Replaces executeTool & explainResult
+   * ----------------------------- */
+  Future<Map<String, dynamic>> sendChat({
+    required String message,
+    String? csvFilePath, // Optional: Only send if a file is uploaded
+  }) async {
+    final body = {
+      "message": message,
+      "session_id": _sessionId,
+      if (csvFilePath != null) "csv_file_path": csvFilePath,
+    };
+
+    final res = await http.post(
+      Uri.parse("$_baseUrl/api/v1/chatbot/chat"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception("Chat request failed: ${res.body}");
+    }
+    return jsonDecode(res.body);
   }
 }

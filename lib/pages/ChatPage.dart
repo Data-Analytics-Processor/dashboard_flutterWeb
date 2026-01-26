@@ -20,8 +20,8 @@ class _ChatPageState extends State<ChatPage> {
   bool _isLoading = false;
 
   // MCP context
-  String? _datasetId;
-  String? _selectedTool;
+  String? _activeFilePath; // The file currently being analyzed
+  String? _selectedTool;   // User's manual tool override (optional)
   List<dynamic> _tools = [];
 
   // Pending upload (before send)
@@ -64,12 +64,12 @@ class _ChatPageState extends State<ChatPage> {
    * SEND MESSAGE (ONE SHOT)
    * ----------------------------- */
   Future<void> _handleSend() async {
-    if (_pendingFile == null && _textController.text.trim().isEmpty) return;
-
     final userText = _textController.text.trim();
+    if (_pendingFile == null && userText.isEmpty) return;
+
     _textController.clear();
 
-    // Add user message (with file stack)
+    // 1. Add User Message to UI
     setState(() {
       _messages.add(
         _ChatMessage.user(
@@ -83,52 +83,46 @@ class _ChatPageState extends State<ChatPage> {
 
     _scrollToBottom();
 
-    // ---- Upload file if exists ----
-    if (_pendingFile != null) {
-      final base64File = base64Encode(_pendingFile!.bytes!);
-      final upload = await _api.uploadDataset(_pendingFile!.name, base64File);
-      _datasetId = upload["dataset_id"];
-    }
+    try {
+      // 2. Upload File (if new one provided)
+      if (_pendingFile != null) {
+        final base64File = base64Encode(_pendingFile!.bytes!);
+        // The API now returns the server-side file path
+        _activeFilePath = await _api.uploadDataset(_pendingFile!.name, base64File);
+      }
 
-    // ---- Execute tool if selected ----
-    Map<String, dynamic>? toolResult;
-    if (_selectedTool != null && _datasetId != null) {
-      final result = await _api.executeTool(
-        datasetId: _datasetId!,
-        tool: _selectedTool!,
-        args: const {},
+      // 3. Construct Message with Context
+      // If user selected a tool explicitly, we guide the Agent.
+      String finalMessage = userText;
+      if (_selectedTool != null) {
+        finalMessage = "Using the tool '$_selectedTool', please $userText";
+      }
+
+      // 4. Send to Backend Brain (Agent)
+      final result = await _api.sendChat(
+        message: finalMessage,
+        csvFilePath: _activeFilePath, // Pass the active file path
       );
-      toolResult = result["result"];
+
+      // 5. Add AI Response to UI
+      setState(() {
+        _messages.add(
+          _ChatMessage.ai(result["response"] ?? "No response generated."),
+        );
+      });
+
+    } catch (e) {
+      setState(() {
+        _messages.add(_ChatMessage.ai("⚠️ Error: $e"));
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _pendingFile = null;
+        _selectedTool = null;
+      });
+      _scrollToBottom();
     }
-
-    // check if tool execution atleast happened
-    if (_selectedTool != null && toolResult != null) {
-      _messages.add(
-        _ChatMessage.ai(" YES! Tool `$_selectedTool` executed successfully."),
-      );
-    }
-
-    // ---- Ask AI to explain ----
-    final reply = await _api.explainResult(
-      userIntent: userText.isEmpty ? "Explain the analysis result" : userText,
-      toolName: _selectedTool ?? "none",
-      toolResult: toolResult ?? {},
-    );
-
-    setState(() {
-      _messages.add(
-        _ChatMessage.ai(
-          reply.trim().isEmpty
-              ? "⚠️ Analysis completed, but no explanation was returned."
-              : reply,
-        ),
-      );
-      _isLoading = false;
-      _pendingFile = null;
-      _selectedTool = null;
-    });
-
-    _scrollToBottom();
   }
 
   void _scrollToBottom() {
@@ -404,6 +398,22 @@ class _Composer extends StatelessWidget {
     required this.onToolSelected,
   });
 
+  String _formatToolName(String rawName) {
+    switch (rawName) {
+      case 'describe_dataset':
+        return 'Describe Dataset';
+      case 'get_correlation_matrix':
+        return 'Correlation Matrix';
+      case 'get_normal_distribution':
+        return 'Distribution Curve';
+      case 'python_repl_ast':
+        return 'General Statistical Analysis';
+      default:
+        // Fallback: capitalize and remove underscores
+        return rawName.replaceAll('_', ' ').toUpperCase();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -424,7 +434,7 @@ class _Composer extends StatelessWidget {
             onTap: () async {
               final res = await FilePicker.platform.pickFiles(
                 type: FileType.custom,
-                allowedExtensions: ['xlsx', 'xls'],
+                allowedExtensions: ['xlsx', 'xls', 'csv'],
                 withData: true,
               );
               if (res != null) onFilePicked(res.files.first);
@@ -438,8 +448,14 @@ class _Composer extends StatelessWidget {
             (t) => ListTile(
               leading: const Icon(Icons.analytics, color: kNeonGreen),
               title: Text(
-                t["name"],
+                _formatToolName(t["name"]), 
                 style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                t["description"] ?? "",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
               ),
               onTap: () {
                 onToolSelected(t["name"]);
