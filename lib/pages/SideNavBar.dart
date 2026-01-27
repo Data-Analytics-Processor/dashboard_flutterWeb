@@ -1,6 +1,4 @@
-// lib/pages/SideNavBar.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 
 class SideNavBar extends StatelessWidget {
@@ -16,68 +14,95 @@ class SideNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-      decoration: const BoxDecoration(
-        color: kBlackBg,
-        // Optional: Add a subtle border or shadow to separate it from the body
-        border: Border(right: BorderSide(color: Color(0xFF222222))),
-      ),
+      color: kBankBg,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- LOGO ---
+          // --- BRAND LOGO ---
           Row(
             children: [
-              const SizedBox(width: 12),
-              Text(
-                'Data Analytics',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                  color: Colors.white,
+              Container(
+                height: 42, width: 42,
+                decoration: BoxDecoration(
+                  color: kBankPrimary,
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [kBankPrimary, kBankAccent],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(color: kBankPrimary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))
+                  ]
                 ),
+                child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 22),
               ),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("NOVA", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
+                  Text("ANALYTICS", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                ],
+              )
             ],
           ),
-          
-          const SizedBox(height: 60),
+          const SizedBox(height: 50),
 
           // --- NAVIGATION ---
-          Text("MENU", style: GoogleFonts.spaceGrotesk(color: Colors.grey[800], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-          const SizedBox(height: 16),
+          Text("MENU", style: TextStyle(color: kTextGrey.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
           
-          _buildNavItem(0, "Dashboard", Icons.grid_view_rounded),
-          _buildNavItem(1, "AI Analyst", Icons.chat_bubble_rounded),
-          _buildNavItem(2, "Reports", Icons.folder_copy_rounded),
-
+          _NavTile(
+            label: "Overview",
+            icon: Icons.grid_view_rounded,
+            activeIcon: Icons.grid_view_rounded,
+            isActive: selectedIndex == 0,
+            onTap: () => onTabSelected(0),
+          ),
+          _NavTile(
+            label: "AI Advisor",
+            icon: Icons.chat_bubble_outline_rounded,
+            activeIcon: Icons.chat_bubble_rounded,
+            isActive: selectedIndex == 1,
+            onTap: () => onTabSelected(1),
+          ),
+          _NavTile(
+            label: "Statements",
+            icon: Icons.description_outlined,
+            activeIcon: Icons.description_rounded,
+            isActive: selectedIndex == 2,
+            onTap: () => onTabSelected(2),
+          ),
+          
           const Spacer(),
-
+          
           // --- USER PROFILE ---
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kSurfaceBlack,
-              borderRadius: BorderRadius.circular(16), // Rounded profile card
-              border: Border.all(color: Colors.white10),
+              color: kBankSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: kBorderColor),
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.grey[900],
-                  radius: 16,
-                  child: const Icon(Icons.person, color: Colors.white, size: 16),
+                  radius: 18,
+                  backgroundColor: kBankSurfaceLight,
+                  child: const Icon(Icons.person, size: 18, color: kTextWhite),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("User Name", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                      Text("Pro Plan", style: TextStyle(color: kNeonGreen.withOpacity(0.8), fontSize: 10)),
+                      const Text("User Name", style: TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700)),
+                      Text("Pro Plan", style: TextStyle(color: kTextGrey, fontSize: 11)),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           )
@@ -85,38 +110,55 @@ class SideNavBar extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildNavItem(int index, String title, IconData icon) {
-    bool isSelected = selectedIndex == index;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+class _NavTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NavTile({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => onTabSelected(index),
-          borderRadius: BorderRadius.circular(50), // Fully rounded interaction
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          hoverColor: kBankSurfaceLight,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: isSelected ? kNeonGreen : Colors.transparent,
-              borderRadius: BorderRadius.circular(50), // Pill Shape
+              color: isActive ? kBankPrimary.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: isActive ? Border.all(color: kBankPrimary.withOpacity(0.3)) : Border.all(color: Colors.transparent),
             ),
             child: Row(
               children: [
                 Icon(
-                  icon, 
-                  color: isSelected ? Colors.black : kTextGrey, 
-                  size: 18
+                  isActive ? activeIcon : icon,
+                  color: isActive ? kBankPrimary : kTextGrey,
+                  size: 22,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Text(
-                  title,
+                  label,
                   style: TextStyle(
-                    color: isSelected ? Colors.black : kTextGrey, // Black text on Green button for contrast
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: 13,
+                    color: isActive ? kBankPrimary : kTextGrey,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 14,
                   ),
                 ),
               ],

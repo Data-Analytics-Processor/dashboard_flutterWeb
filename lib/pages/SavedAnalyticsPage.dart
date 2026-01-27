@@ -16,18 +16,21 @@ class SavedAnalyticsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reportService = ReportService();
+    // Responsive padding to match HomePage
+    final isMobile = Responsive.isMobile(context);
+    final padding = isMobile ? 24.0 : 40.0;
 
     return Padding(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Saved Reports",
             style: TextStyle(
-              fontSize: 32,
+              fontSize: isMobile ? 24 : 32,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: kTextWhite,
             ),
           ),
           const SizedBox(height: 8),
@@ -47,19 +50,19 @@ class SavedAnalyticsPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.folder_open_rounded,
                           size: 64,
-                          color: Colors.white.withOpacity(0.2),
+                          color: kBankSurfaceLight, // Theme Update
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           "No reports generated yet.",
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.4),
+                            color: kTextGrey,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
                         OutlinedButton(
                           onPressed: () {
                             // Helper to test: Add a dummy file immediately
@@ -70,11 +73,12 @@ class SavedAnalyticsPage extends StatelessWidget {
                             );
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: kNeonGreen,
-                            side: const BorderSide(color: kNeonGreen),
+                            foregroundColor: kBankPrimary, // Theme Update
+                            side: const BorderSide(color: kBankPrimary),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                           ),
                           child: const Text("Generate Test Report"),
                         ),
@@ -84,8 +88,9 @@ class SavedAnalyticsPage extends StatelessWidget {
                 }
 
                 // 2. List of Real Reports
-                return ListView.builder(
+                return ListView.separated(
                   itemCount: reports.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     return _buildReportItem(reports[index]);
                   },
@@ -100,13 +105,11 @@ class SavedAnalyticsPage extends StatelessWidget {
 
   Widget _buildReportItem(Report report) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: kSurfaceBlack,
-        border: Border.all(color: Colors.white10),
-        // UPDATED: Smooth rounded corners
-        borderRadius: BorderRadius.circular(24),
+        color: kBankSurface, // Theme Update
+        border: Border.all(color: kBorderColor), // Theme Update
+        borderRadius: BorderRadius.circular(16), // Consistent Radius
       ),
       child: Row(
         children: [
@@ -114,18 +117,18 @@ class SavedAnalyticsPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kNeonGreen.withOpacity(0.1),
+              color: kBankPrimary.withOpacity(0.1), // Theme Update
               shape: BoxShape.circle,
             ),
             child: Icon(
               report.type.toLowerCase() == 'csv'
                   ? Icons.table_chart_rounded
                   : Icons.description_rounded,
-              color: kNeonGreen,
+              color: kBankPrimary, // Theme Update
               size: 24,
             ),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
 
           Expanded(
             child: Column(
@@ -134,7 +137,7 @@ class SavedAnalyticsPage extends StatelessWidget {
                 Text(
                   report.name,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: kTextWhite,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -148,27 +151,28 @@ class SavedAnalyticsPage extends StatelessWidget {
             ),
           ),
 
+          // Date (Hidden on very small screens if needed, but kept here)
           Text(
             DateFormat('MMM d, h:mm a').format(report.date),
-            style: const TextStyle(color: kTextGrey, fontSize: 14),
+            style: const TextStyle(color: kTextGrey, fontSize: 13),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
 
           // Download Button
           PopupMenuButton<String>(
-            icon: const Icon(Icons.download_rounded, color: Colors.white),
-            color: kSurfaceBlack,
+            icon: const Icon(Icons.download_rounded, color: kTextGrey),
+            color: kBankSurface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Colors.white10),
+              side: const BorderSide(color: kBorderColor),
             ),
             onSelected: (value) {
               if (value == 'txt') ReportService().downloadAsTxt(report);
               if (value == 'excel') ReportService().downloadAsExcel(report);
             },
             itemBuilder: (context) => [
-              _buildMenuItem('txt', Icons.text_snippet, "Text File"),
-              _buildMenuItem('excel', Icons.table_chart, "Excel Sheet"),
+              _buildMenuItem('txt', Icons.text_snippet_rounded, "Text File"),
+              _buildMenuItem('excel', Icons.grid_on_rounded, "Excel Sheet"),
             ],
           ),
         ],
@@ -185,9 +189,9 @@ class SavedAnalyticsPage extends StatelessWidget {
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: kNeonGreen),
+          Icon(icon, size: 18, color: kBankPrimary), // Theme Update
           const SizedBox(width: 12),
-          Text(text, style: const TextStyle(color: Colors.white)),
+          Text(text, style: const TextStyle(color: kTextWhite)),
         ],
       ),
     );

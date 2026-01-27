@@ -1,11 +1,10 @@
 // lib/services/report_service.dart
 import 'dart:convert';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html; // Only works on Flutter Web
 import 'package:flutter/foundation.dart';
-
-// Packages for download options
 import 'package:excel/excel.dart';
+
+// 🚀 IMPORT THE SAFE DOWNLOADER (Handles Web vs Mobile automatically)
+import 'downloader/downloader.dart'; 
 
 // 1. The Model
 class Report {
@@ -57,9 +56,10 @@ class ReportService {
 
  // --- DOWNLOADERS ---
 
-  // 1. Text / CSV (Original)
+  // 1. Text / CSV
   void downloadAsTxt(Report report) {
-    _triggerWebDownload(report.data, "${report.name}.txt", "text/plain");
+    // Uses the safe cross-platform downloader
+    downloadFile(report.data, "${report.name}.txt", "text/plain");
   }  
 
   // 2. Excel
@@ -72,26 +72,14 @@ class ReportService {
     // Split by lines and add as rows
     List<String> lines = const LineSplitter().convert(textContent);
     for (var line in lines) {
-      // Split by comma for CSV-like structure, or just put whole line in one cell
       List<String> cells = line.split(',');
       sheetObject.appendRow(cells.map((e) => TextCellValue(e.trim())).toList());
     }
     final bytes = excel.encode();
     
     if (bytes != null) {
-      _triggerWebDownload(bytes, "${report.name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    }
-  }
-
-  // Helper for Browser Download
-  void _triggerWebDownload(List<int> bytes, String fileName, String mimeType) {
-    if (kIsWeb) {
-      final blob = html.Blob([bytes], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      html.AnchorElement(href: url)
-        ..setAttribute("download", fileName)
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      // Uses the safe cross-platform downloader
+      downloadFile(bytes, "${report.name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
   }
 }
