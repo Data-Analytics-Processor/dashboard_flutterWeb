@@ -5,7 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String _localUrl = "http://127.0.0.1:5000";
+  static const String _localUrl = "https://backend-py-edco.onrender.com";
   // 👇 REPLACE THIS with your actual Backend URL from Render dashboard
   static const String _prodUrl = "https://backend-py-edco.onrender.com"; 
 

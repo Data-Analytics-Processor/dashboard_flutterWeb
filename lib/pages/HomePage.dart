@@ -1,179 +1,299 @@
-// lib/pages/HomePage.dart
 import 'package:flutter/material.dart';
-import 'package:dashboard_flutter/ReusableConstants/constants.dart';
-import 'package:dashboard_flutter/services/report_service.dart';
 import 'package:dashboard_flutter/services/stats_service.dart';
+import 'package:dashboard_flutter/services/report_service.dart'; // Import ReportService to fix the list variable
+import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 
 class HomePage extends StatelessWidget {
-  // Callback to switch tabs in MainLayout
   final Function(int) onNavigate;
 
   const HomePage({super.key, required this.onNavigate});
+
+  // Helper to format bytes to readable string
+String _formatDataSize(int totalBytes) {
+  if (totalBytes < 1024) return "${totalBytes} B";
+  if (totalBytes < 1024 * 1024) return "${(totalBytes / 1024).toStringAsFixed(1)} KB";
+  if (totalBytes < 1024 * 1024 * 1024) return "${(totalBytes / (1024 * 1024)).toStringAsFixed(2)} MB";
+  return "${(totalBytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
+}
 
   @override
   Widget build(BuildContext context) {
     final stats = StatsService();
     final reports = ReportService();
+    final isMobile = Responsive.isMobile(context);
+    final double padding = isMobile ? 24.0 : 40.0;
 
-    return Padding(
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // --- HEADER ---
-          const Text("Welcome back, User", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 8),
-          const Text("Here is what's happening with your data today.", style: TextStyle(color: kTextGrey)),
-          const SizedBox(height: 40),
-
-          // --- ROW 1: NAVIGATION ACTION CARDS (Half Width) ---
-          SizedBox(
-            height: 140, // Fixed height for action cards
-            child: Row(
+    return Scaffold(
+      backgroundColor: kBankBg,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(padding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- HEADER ---
+            Flex(
+              direction: isMobile ? Axis.vertical : Axis.horizontal,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
               children: [
-                Expanded(
-                  child: _buildActionCard(
-                    "Start Analysis", 
-                    "Chat with AI", 
-                    Icons.auto_awesome_rounded, // Swapped for a rounded icon variant
-                    () => onNavigate(1), // Navigate to Chat Tab (Index 1)
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "NOVA Dashboard",
+                      style: TextStyle(color: kTextWhite, fontSize: isMobile ? 26 : 32, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Your data at a glance",
+                      style: TextStyle(color: kTextGrey, fontSize: 15),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: _buildActionCard(
-                    "View Library", 
-                    "Saved Reports", 
-                    Icons.folder_open_rounded, 
-                    () => onNavigate(2), // Navigate to Reports Tab (Index 2)
+                if (isMobile) const SizedBox(height: 20),
+                // "New Analysis" Button
+                ElevatedButton.icon(
+                  onPressed: () => onNavigate(1), 
+                  icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                  label: const Text("New Analysis", style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBankPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 8,
+                    shadowColor: kBankPrimary.withOpacity(0.4),
                   ),
-                ),
+                )
               ],
             ),
-          ),
+            const SizedBox(height: 40),
 
-          const SizedBox(height: 20),
-
-          // --- ROW 2: LIVE STATS (Real-Time Data) ---
-          Expanded(
-            child: Row(
-              children: [
-                // 1. ACTIVE SESSIONS / QUERIES
-                Expanded(
-                  child: ValueListenableBuilder<int>(
+            // --- CARDS SECTION (Adaptive) ---
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cards = [
+                  // 1. QUERY CARD
+                  ValueListenableBuilder<int>(
                     valueListenable: stats.queryCount,
-                    builder: (context, count, _) {
-                      return _buildLiveStatCard(
-                        "Total AI Queries", 
-                        count.toString(), 
-                        Icons.insights_rounded,
-                        Colors.blueAccent,
+                    builder: (ctx, count, _) {
+                      return _BankCard(
+                        title: "Total Queries",
+                        value: "$count",
+                        subtitle: "AI assisted querries",
+                        icon: Icons.api_rounded,
+                        isPrimary: true,
                       );
                     },
                   ),
-                ),
-                const SizedBox(width: 20),
-                
-                // 2. CREATED REPORTS
-                Expanded(
-                  child: ValueListenableBuilder<List<Report>>(
+                  // 2. REPORTS CARD
+                  ValueListenableBuilder<List<Report>>(
+                    valueListenable: reports.reportsNotifier,
+                    builder: (ctx, reportList, _) {
+                      return _BankCard(
+                        title: "Reports Generated",
+                        value: "${reportList.length}",
+                        subtitle: "Exported files",
+                        icon: Icons.description_rounded,
+                        isPrimary: false,
+                      );
+                    },
+                  ),
+                  // 3. STATIC CARD
+                  ValueListenableBuilder<List<Report>>(
                     valueListenable: reports.reportsNotifier,
                     builder: (context, reportList, _) {
-                      return _buildLiveStatCard(
-                        "Reports Generated", 
-                        reportList.length.toString(), 
-                        Icons.description_rounded,
-                        kNeonGreen,
+                      final int totalBytes = reportList.fold(
+                        0, 
+                        (sum, report) => sum + report.data.length
+                      );
+                      final String usedData = _formatDataSize(totalBytes);
+                      return _BankCard(
+                        title: "Data Processed",
+                        value: "$usedData / 5 GB",
+                        subtitle: "Cloud usage",
+                        icon: Icons.cloud_done_outlined,
+                        isPrimary: false,
                       );
                     },
                   ),
+                ];
+
+                if (isMobile) {
+                  return Column(
+                    children: cards.map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c)).toList(),
+                  );
+                } else {
+                  return Row(
+                    children: cards.map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: c))).toList(),
+                  );
+                }
+              },
+            ),
+
+            const SizedBox(height: 50),
+
+            // --- QUICK ACTIONS ---
+            Text("Quick Actions", style: TextStyle(color: kTextWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                _ActionTile(
+                  icon: Icons.chat_bubble_outline_rounded, 
+                  label: "AI Advisor", 
+                  subLabel: "Get insights",
+                  isMobile: isMobile,
+                  onTap: () => onNavigate(1)
+                ),
+                _ActionTile(
+                  icon: Icons.receipt_long_rounded, 
+                  label: "View Reports", 
+                  subLabel: "Download CSVs",
+                  isMobile: isMobile,
+                  onTap: () => onNavigate(2)
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Smaller, clickable navigation card
-  Widget _buildActionCard(String title, String subtitle, IconData icon, VoidCallback onTap) {
-    return Material(
-      color: kSurfaceBlack,
-      // SMOOTH ROUNDED CORNERS (24px)
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24), 
-        side: const BorderSide(color: Colors.white10),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        hoverColor: kNeonGreen.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24), // Matches the shape
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  // FULLY ROUNDED ICON BACKGROUND
-                  shape: BoxShape.circle, 
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Icon(icon, color: kNeonGreen, size: 24),
-              ),
-              const SizedBox(width: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: kTextGrey, fontSize: 13)),
-                ],
-              ),
-              const Spacer(),
-              const Icon(Icons.arrow_forward_rounded, color: Colors.white24, size: 24),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );
   }
+}
 
-  // Large stat card for displaying numbers
-  Widget _buildLiveStatCard(String title, String value, IconData icon, Color accentColor) {
+class _BankCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final bool isPrimary;
+
+  const _BankCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    this.isPrimary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      height: 200,
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: kSurfaceBlack,
-        border: Border.all(color: Colors.white10),
-        borderRadius: BorderRadius.circular(24), // SMOOTH ROUNDED CORNERS
+        color: isPrimary ? kBankPrimary : kBankSurface,
+        borderRadius: BorderRadius.circular(24),
+        border: isPrimary ? null : Border.all(color: kBorderColor),
+        gradient: isPrimary ? const LinearGradient(
+          colors: [kBankPrimary, kBankAccent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ) : null,
+        boxShadow: isPrimary ? [
+           BoxShadow(color: kBankPrimary.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 10))
+        ] : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.1),
-              shape: BoxShape.circle, // CIRCLE BACKGROUND
-            ),
-            child: Icon(icon, color: accentColor, size: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isPrimary ? Colors.white.withOpacity(0.2) : kBankSurfaceLight,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: isPrimary ? Colors.white : kTextWhite, size: 22),
+              ),
+              if (isPrimary)
+                const Icon(Icons.blur_on, color: Colors.white24, size: 30),
+            ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                value, 
-                style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: -2)
+              Text(value, style: TextStyle(
+                color: isPrimary ? Colors.white : kTextWhite,
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -1.0,
+              )),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(title.toUpperCase(), style: TextStyle(
+                    color: isPrimary ? Colors.white70 : kTextGrey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                  )),
+                  const Spacer(),
+                  Text(subtitle, style: TextStyle(
+                    color: isPrimary ? Colors.white60 : kTextGrey.withOpacity(0.5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  )),
+                ],
               ),
-              Text(title, style: const TextStyle(color: kTextGrey, fontSize: 16)),
             ],
           )
         ],
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subLabel;
+  final VoidCallback onTap;
+  final bool isMobile;
+
+  const _ActionTile({
+    required this.icon, 
+    required this.label, 
+    required this.subLabel, 
+    required this.onTap,
+    required this.isMobile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    double width = isMobile 
+        ? (MediaQuery.of(context).size.width / 2) - 32 
+        : 160;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      hoverColor: kBankSurfaceLight,
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: kBankSurface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: kBorderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: kBankPrimary, size: 32),
+            const SizedBox(height: 20),
+            Text(label, style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text(subLabel, style: const TextStyle(color: kTextGrey, fontSize: 12)),
+          ],
+        ),
       ),
     );
   }

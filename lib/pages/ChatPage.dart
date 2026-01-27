@@ -1,4 +1,3 @@
-// lib/pages/ChatPage.dart
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -38,8 +37,12 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _loadTools() async {
-    final tools = await _api.fetchTools();
-    setState(() => _tools = tools);
+    try {
+      final tools = await _api.fetchTools();
+      setState(() => _tools = tools);
+    } catch (e) {
+      // Handle error silently or log
+    }
   }
 
   /* -----------------------------
@@ -48,9 +51,9 @@ class _ChatPageState extends State<ChatPage> {
   void _openComposer() async {
     await showModalBottomSheet(
       context: context,
-      backgroundColor: kSurfaceBlack,
+      backgroundColor: kBankSurface, // Theme Update
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => _Composer(
         tools: _tools,
@@ -147,7 +150,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: kBankBg, // Theme Update
       body: Column(
         children: [
           _buildHeader(),
@@ -160,16 +163,24 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildHeader() {
     return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+        color: kBankBg,
+        border: Border(bottom: BorderSide(color: kBorderColor)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.auto_awesome, color: kNeonGreen),
-          SizedBox(width: 12),
-          Text("AI Data Analyst", style: TextStyle(color: Colors.white)),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: kBankPrimary.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.auto_awesome, color: kBankPrimary, size: 20),
+          ),
+          const SizedBox(width: 14),
+          const Text("Nova Analyst", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),
     );
@@ -192,25 +203,19 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.white10)),
+        color: kBankBg,
+        border: Border(top: BorderSide(color: kBorderColor)),
       ),
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 900),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(999), // pill
-            border: Border.all(color: kNeonGreen.withOpacity(0.4), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: kNeonGreen.withOpacity(0.15),
-                blurRadius: 18,
-                spreadRadius: 1,
-              ),
-            ],
+            color: kBankSurface, // Theme Update
+            borderRadius: BorderRadius.circular(30), // Pill Shape
+            border: Border.all(color: kBorderColor),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -218,14 +223,14 @@ class _ChatPageState extends State<ChatPage> {
               // 🔹 PREVIEW ROW (file + tool)
               if (_pendingFile != null || _selectedTool != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       if (_pendingFile != null)
                         _PreviewChip(
-                          icon: Icons.insert_drive_file,
+                          icon: Icons.insert_drive_file_rounded,
                           label: _pendingFile!.name,
                           onRemove: () {
                             setState(() => _pendingFile = null);
@@ -233,7 +238,7 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       if (_selectedTool != null)
                         _PreviewChip(
-                          icon: Icons.analytics,
+                          icon: Icons.analytics_rounded,
                           label: "Tool: $_selectedTool",
                           onRemove: () {
                             setState(() => _selectedTool = null);
@@ -247,35 +252,41 @@ class _ChatPageState extends State<ChatPage> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.add, color: kTextGrey),
+                    icon: const Icon(Icons.add_circle_outline_rounded, color: kTextGrey),
                     onPressed: _openComposer,
+                    tooltip: "Upload or Select Tool",
                   ),
                   Expanded(
                     child: TextField(
                       controller: _textController,
-                      style: const TextStyle(color: Colors.white),
-                      cursorColor: kNeonGreen,
+                      style: const TextStyle(color: kTextWhite),
+                      cursorColor: kBankPrimary,
                       decoration: const InputDecoration(
-                        hintText: "Add context or instructions…",
+                        hintText: "Ask about your data...",
                         hintStyle: TextStyle(color: kTextGrey),
                         border: InputBorder.none,
                         isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
                       ),
                       onSubmitted: (_) => _handleSend(),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   GestureDetector(
                     onTap: _isLoading ? null : _handleSend,
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: kNeonGreen,
+                        color: kBankPrimary, // Theme Update
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: kBankPrimary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2))
+                        ]
                       ),
                       child: const Icon(
-                        Icons.arrow_upward,
-                        size: 18,
-                        color: Colors.black,
+                        Icons.arrow_upward_rounded,
+                        size: 20,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -318,23 +329,30 @@ class _ChatMessage {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kSurfaceBlack,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        color: kBankPrimary, // Theme Update: User is Blue
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(4),
+        ),
+        boxShadow: [
+          BoxShadow(color: kBankPrimary.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))
+        ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (file != null) _FileChip(file!.name),
+          if (file != null) _FileChip(file!.name, isUser: true),
           if (tool != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 "Requested Tool: $tool",
-                style: const TextStyle(color: kNeonGreen, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12, fontStyle: FontStyle.italic),
               ),
             ),
-          Text(text, style: const TextStyle(color: Colors.white, height: 1.6)),
+          Text(text, style: const TextStyle(color: Colors.white, height: 1.5, fontSize: 15)),
         ],
       ),
     );
@@ -343,47 +361,48 @@ class _ChatMessage {
   Widget _buildAiMessage(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: kSurfaceBlack,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kNeonGreen.withOpacity(0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: kNeonGreen.withOpacity(0.05),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
+        color: kBankSurface, // Theme Update: AI is Dark Surface
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+          bottomLeft: Radius.circular(4),
+          bottomRight: Radius.circular(20),
+        ),
+        border: Border.all(color: kBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: kNeonGreen.withOpacity(0.1),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(14),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(
+              color: kBankSurfaceLight,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(19)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 14, color: kBankPrimary),
+                const SizedBox(width: 8),
+                const Text("Analysis Result", style: TextStyle(color: kTextGrey, fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
             ),
           ),
-
-          const Divider(height: 1, color: Colors.white10),
 
           // Content
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Text(
+            child: SelectableText(
               text,
               style: const TextStyle(
-                color: Colors.white,
+                color: kTextWhite,
                 height: 1.6,
                 fontSize: 15,
               ),
             ),
           ),
 
-          const Divider(height: 1, color: Colors.white10),
+          const Divider(height: 1, color: kBorderColor),
 
           // Footer with Save Button
           Padding(
@@ -401,7 +420,7 @@ class _ChatMessage {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text("Saved '$name' to Reports"),
-                        backgroundColor: kNeonGreen,
+                        backgroundColor: kBankPrimary,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -409,7 +428,7 @@ class _ChatMessage {
                         duration: const Duration(milliseconds: 1500),
                         action: SnackBarAction(
                           label: "VIEW",
-                          textColor: Colors.black,
+                          textColor: Colors.white,
                           onPressed: () {
                             // Navigation logic would go here if needed
                           },
@@ -420,9 +439,8 @@ class _ChatMessage {
                   icon: const Icon(Icons.save_alt_rounded, size: 16),
                   label: const Text("Save Report"),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.transparent,
-                    side: const BorderSide(color: Colors.white24),
+                    foregroundColor: kTextWhite,
+                    side: const BorderSide(color: kBorderColor),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -443,7 +461,8 @@ class _ChatMessage {
 
 class _FileChip extends StatelessWidget {
   final String name;
-  const _FileChip(this.name);
+  final bool isUser;
+  const _FileChip(this.name, {this.isUser = false});
 
   @override
   Widget build(BuildContext context) {
@@ -451,16 +470,15 @@ class _FileChip extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: isUser ? Colors.white24 : kBankSurfaceLight,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.insert_drive_file, size: 14, color: kNeonGreen),
+          Icon(Icons.insert_drive_file_rounded, size: 14, color: isUser ? Colors.white : kBankPrimary),
           const SizedBox(width: 6),
-          Text(name, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Text(name, style: TextStyle(color: isUser ? Colors.white : kTextWhite, fontSize: 12)),
         ],
       ),
     );
@@ -477,17 +495,12 @@ class _TypingIndicator extends StatelessWidget {
       child: Row(
         children: const [
           SizedBox(
-            width: 6,
-            height: 6,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: kNeonGreen,
-                shape: BoxShape.circle,
-              ),
-            ),
+            width: 8,
+            height: 8,
+            child: CircularProgressIndicator(strokeWidth: 2, color: kBankPrimary),
           ),
-          SizedBox(width: 8),
-          Text("Analyzing…", style: TextStyle(color: kTextGrey, fontSize: 12)),
+          SizedBox(width: 12),
+          Text("Analyzing data...", style: TextStyle(color: kTextGrey, fontSize: 12)),
         ],
       ),
     );
@@ -516,7 +529,6 @@ class _Composer extends StatelessWidget {
       case 'python_repl_ast':
         return 'General Statistical Analysis';
       default:
-        // Fallback: capitalize and remove underscores
         return rawName.replaceAll('_', ' ').toUpperCase();
     }
   }
@@ -524,20 +536,26 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Add to message", style: TextStyle(color: Colors.white)),
-          const SizedBox(height: 16),
+          const Text("Attach Context", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 20),
 
           ListTile(
-            leading: const Icon(Icons.upload_file, color: kNeonGreen),
-            title: const Text(
-              "Upload file",
-              style: TextStyle(color: Colors.white),
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: kBankPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.upload_file_rounded, color: kBankPrimary),
             ),
+            title: const Text(
+              "Upload Dataset",
+              style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text("Support for CSV, Excel", style: TextStyle(color: kTextGrey)),
             onTap: () async {
               final res = await FilePicker.platform.pickFiles(
                 type: FileType.custom,
@@ -549,20 +567,17 @@ class _Composer extends StatelessWidget {
             },
           ),
 
-          const Divider(color: Colors.white10),
+          const Divider(color: kBorderColor, height: 30),
+          const Text("Analysis Tools", style: TextStyle(color: kTextGrey, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
 
           ...tools.map(
             (t) => ListTile(
-              leading: const Icon(Icons.analytics, color: kNeonGreen),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.analytics_outlined, color: kTextGrey, size: 20),
               title: Text(
                 _formatToolName(t["name"]),
-                style: const TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                t["description"] ?? "",
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: const TextStyle(color: kTextWhite, fontSize: 14),
               ),
               onTap: () {
                 onToolSelected(t["name"]);
@@ -590,25 +605,25 @@ class _PreviewChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: kSurfaceBlack,
+        color: kBankSurfaceLight,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: kBorderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: kNeonGreen),
-          const SizedBox(width: 6),
+          Icon(icon, size: 14, color: kBankPrimary),
+          const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: const TextStyle(color: kTextWhite, fontSize: 12, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: onRemove,
-            child: const Icon(Icons.close, size: 14, color: kTextGrey),
+            child: const Icon(Icons.close_rounded, size: 16, color: kTextGrey),
           ),
         ],
       ),
