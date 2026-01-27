@@ -8,6 +8,14 @@ class HomePage extends StatelessWidget {
 
   const HomePage({super.key, required this.onNavigate});
 
+  // Helper to format bytes to readable string
+String _formatDataSize(int totalBytes) {
+  if (totalBytes < 1024) return "${totalBytes} B";
+  if (totalBytes < 1024 * 1024) return "${(totalBytes / 1024).toStringAsFixed(1)} KB";
+  if (totalBytes < 1024 * 1024 * 1024) return "${(totalBytes / (1024 * 1024)).toStringAsFixed(2)} MB";
+  return "${(totalBytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
+}
+
   @override
   Widget build(BuildContext context) {
     final stats = StatsService();
@@ -32,12 +40,12 @@ class HomePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Overview",
+                      "NOVA Dashboard",
                       style: TextStyle(color: kTextWhite, fontSize: isMobile ? 26 : 32, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "Your financial data at a glance",
+                      "Your data at a glance",
                       style: TextStyle(color: kTextGrey, fontSize: 15),
                     ),
                   ],
@@ -72,7 +80,7 @@ class HomePage extends StatelessWidget {
                       return _BankCard(
                         title: "Total Queries",
                         value: "$count",
-                        subtitle: "+12% vs last week",
+                        subtitle: "AI assisted querries",
                         icon: Icons.api_rounded,
                         isPrimary: true,
                       );
@@ -92,12 +100,22 @@ class HomePage extends StatelessWidget {
                     },
                   ),
                   // 3. STATIC CARD
-                  const _BankCard(
-                    title: "Data Processed",
-                    value: "2.4 GB",
-                    subtitle: "Cloud usage",
-                    icon: Icons.cloud_done_outlined,
-                    isPrimary: false,
+                  ValueListenableBuilder<List<Report>>(
+                    valueListenable: reports.reportsNotifier,
+                    builder: (context, reportList, _) {
+                      final int totalBytes = reportList.fold(
+                        0, 
+                        (sum, report) => sum + report.data.length
+                      );
+                      final String usedData = _formatDataSize(totalBytes);
+                      return _BankCard(
+                        title: "Data Processed",
+                        value: "$usedData / 5 GB",
+                        subtitle: "Cloud usage",
+                        icon: Icons.cloud_done_outlined,
+                        isPrimary: false,
+                      );
+                    },
                   ),
                 ];
 
@@ -136,13 +154,6 @@ class HomePage extends StatelessWidget {
                   subLabel: "Download CSVs",
                   isMobile: isMobile,
                   onTap: () => onNavigate(2)
-                ),
-                _ActionTile(
-                  icon: Icons.settings_outlined, 
-                  label: "Settings", 
-                  subLabel: "Configure API",
-                  isMobile: isMobile,
-                  onTap: () {}
                 ),
               ],
             )

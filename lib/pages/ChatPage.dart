@@ -262,7 +262,7 @@ class _ChatPageState extends State<ChatPage> {
                       style: const TextStyle(color: kTextWhite),
                       cursorColor: kBankPrimary,
                       decoration: const InputDecoration(
-                        hintText: "Add instructions...",
+                        hintText: "Ask about your data...",
                         hintStyle: TextStyle(color: kTextGrey),
                         border: InputBorder.none,
                         isDense: true,
