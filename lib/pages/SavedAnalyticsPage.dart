@@ -5,13 +5,87 @@ Currently the Chat Page creates saved reports in memory (RAM).
 Later connect to a real database (Supabase/Neon/AWS S3/etc...) to store the saved reports
 for longer.
 */
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import 'package:dashboard_flutter/services/report_service.dart';
+import 'package:dashboard_flutter/services/downloader/downloader.dart';
+import 'package:excel/excel.dart' hide Border;
 
 class SavedAnalyticsPage extends StatelessWidget {
   const SavedAnalyticsPage({super.key});
+
+  // --- 1.Generate Real Excel Bytes ---
+  List<int>? _generateExcelBytes(String csvContent) {
+    try {
+      var excel = Excel.createExcel();
+      Sheet sheetObject = excel['Sheet1'];
+
+      // Parse the CSV-like string content
+      List<String> lines = const LineSplitter().convert(csvContent);
+
+      for (var line in lines) {
+        List<String> cells = line.split(',');
+        sheetObject.appendRow(
+          cells.map((e) => TextCellValue(e.trim())).toList(),
+        );
+      }
+
+      return excel.encode();
+    } catch (e) {
+      debugPrint("Excel generation error: $e");
+      return null;
+    }
+  }
+
+  // --- 2. DOWNLOAD HANDLER ---
+  Future<void> _handleDownload(
+    BuildContext context,
+    Report report,
+    String type,
+  ) async {
+    final String data = report.content ?? "No content available";
+    List<int>? bytes;
+    String fileName = report.name;
+    String mimeType = 'text/plain';
+
+    // LOGIC: Check Type and Generate Bytes
+    if (type == 'excel') {
+      // A. Generate Real Excel (.xlsx)
+      bytes = _generateExcelBytes(data);
+      if (bytes == null) {
+        _showSnack(context, "Failed to generate Excel file", isError: true);
+        return;
+      }
+      fileName = "$fileName.xlsx";
+      mimeType =
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    } else {
+      // B. Generate Text (.txt)
+      bytes = utf8.encode(data);
+      fileName = "$fileName.txt";
+      mimeType = 'text/plain';
+    }
+
+    // C. Call the Downloader
+    await downloadFile(bytes, fileName, mimeType);
+
+    // D. Feedback
+    if (context.mounted) {
+      _showSnack(context, "Saved $fileName to Downloads");
+    }
+  }
+
+  void _showSnack(BuildContext context, String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +132,7 @@ class SavedAnalyticsPage extends StatelessWidget {
                         const SizedBox(height: 16),
                         const Text(
                           "No reports generated yet.",
-                          style: TextStyle(
-                            color: kTextGrey,
-                          ),
+                          style: TextStyle(color: kTextGrey),
                         ),
                         const SizedBox(height: 16),
                         OutlinedButton(
@@ -78,7 +150,10 @@ class SavedAnalyticsPage extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                           ),
                           child: const Text("Generate Test Report"),
                         ),
@@ -92,7 +167,7 @@ class SavedAnalyticsPage extends StatelessWidget {
                   itemCount: reports.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    return _buildReportItem(reports[index]);
+                    return _buildReportItem(context, reports[index]);
                   },
                 );
               },
@@ -103,7 +178,7 @@ class SavedAnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildReportItem(Report report) {
+  Widget _buildReportItem(BuildContext context, Report report) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -166,13 +241,10 @@ class SavedAnalyticsPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               side: const BorderSide(color: kBorderColor),
             ),
-            onSelected: (value) {
-              if (value == 'txt') ReportService().downloadAsTxt(report);
-              if (value == 'excel') ReportService().downloadAsExcel(report);
-            },
+            onSelected: (value) => _handleDownload(context, report, value),
             itemBuilder: (context) => [
               _buildMenuItem('txt', Icons.text_snippet_rounded, "Text File"),
-              _buildMenuItem('excel', Icons.grid_on_rounded, "Excel Sheet"),
+              _buildMenuItem('excel', Icons.grid_on_rounded, "Excel / CSV"),
             ],
           ),
         ],

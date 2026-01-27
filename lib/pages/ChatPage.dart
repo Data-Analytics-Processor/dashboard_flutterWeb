@@ -1,10 +1,14 @@
+// lib/pages/ChatPage.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import 'package:dashboard_flutter/api/api_service.dart';
 import 'package:dashboard_flutter/services/report_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -557,6 +561,22 @@ class _Composer extends StatelessWidget {
             ),
             subtitle: const Text("Support for CSV, Excel", style: TextStyle(color: kTextGrey)),
             onTap: () async {
+              // --- PERMISSION CHECK START ---
+              if (Platform.isAndroid) {
+                final androidInfo = await DeviceInfoPlugin().androidInfo;
+                if (androidInfo.version.sdkInt < 33) {
+                  final status = await Permission.storage.request();
+                  if (!status.isGranted) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Storage permission required to upload files.")),
+                      );
+                    }
+                    return; // Stop here if denied
+                  }
+                }
+              }
+              // ------
               final res = await FilePicker.platform.pickFiles(
                 type: FileType.custom,
                 allowedExtensions: ['xlsx', 'xls', 'csv'],

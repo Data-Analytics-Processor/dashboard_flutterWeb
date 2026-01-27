@@ -2,12 +2,10 @@ import 'dart:js_interop';
 import 'dart:typed_data';
 import 'package:web/web.dart';
 
-void downloadFile(List<int> bytes, String fileName, String mimeType) {
-  // 1. Convert Dart bytes to JS-compatible Uint8List
+Future<void> downloadFile(List<int> bytes, String fileName, String mimeType) async {
+
   final data = Uint8List.fromList(bytes);
 
-  // 2. Create a Blob
-  // We wrap the data in a JS Array ([...].toJS) and pass mimeType in BlobPropertyBag
   final blob = Blob(
     [data.toJS].toJS, 
     BlobPropertyBag(type: mimeType)

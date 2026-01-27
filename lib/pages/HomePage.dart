@@ -1,3 +1,4 @@
+// lib/pages/HomePage.dart
 import 'package:flutter/material.dart';
 import 'package:dashboard_flutter/services/stats_service.dart';
 import 'package:dashboard_flutter/services/report_service.dart'; // Import ReportService to fix the list variable
@@ -105,7 +106,7 @@ String _formatDataSize(int totalBytes) {
                     builder: (context, reportList, _) {
                       final int totalBytes = reportList.fold(
                         0, 
-                        (sum, report) => sum + report.data.length
+                        (sum, report) => sum + (report.content?.length ?? 0)
                       );
                       final String usedData = _formatDataSize(totalBytes);
                       return _BankCard(

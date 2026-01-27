@@ -18,7 +18,7 @@ class AnalyticsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Nova Banking',
+      title: 'Nova Dashboard',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: kBankBg,
