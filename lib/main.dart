@@ -75,7 +75,7 @@ class _MainLayoutState extends State<MainLayout> {
   // Pass navigation callback to HomePage
   List<Widget> get _pages => [
     HomePage(onNavigate: switchTab), 
-    const ChatPage(),
+    const InsightsPage(),
     const SavedAnalyticsPage(),
   ];
 

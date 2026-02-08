@@ -1,7 +1,7 @@
 // lib/pages/HomePage.dart
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:dashboard_flutter/services/stats_service.dart';
-import 'package:dashboard_flutter/services/report_service.dart'; // Import ReportService to fix the list variable
+import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 
 class HomePage extends StatelessWidget {
@@ -9,155 +9,175 @@ class HomePage extends StatelessWidget {
 
   const HomePage({super.key, required this.onNavigate});
 
-  // Helper to format bytes to readable string
-String _formatDataSize(int totalBytes) {
-  if (totalBytes < 1024) return "${totalBytes} B";
-  if (totalBytes < 1024 * 1024) return "${(totalBytes / 1024).toStringAsFixed(1)} KB";
-  if (totalBytes < 1024 * 1024 * 1024) return "${(totalBytes / (1024 * 1024)).toStringAsFixed(2)} MB";
-  return "${(totalBytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
-}
-
   @override
   Widget build(BuildContext context) {
-    final stats = StatsService();
-    final reports = ReportService();
-    final isMobile = Responsive.isMobile(context);
-    final double padding = isMobile ? 24.0 : 40.0;
-
+    // Mock Data for "Business Vibe"
+    // In a real app, this would come from a BusinessService, not a generic StatsService
+    final currency = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final isMobile = MediaQuery.of(context).size.width < 800;
+    
     return Scaffold(
       backgroundColor: kBankBg,
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(padding),
+        padding: EdgeInsets.all(isMobile ? 20 : 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- HEADER ---
-            Flex(
-              direction: isMobile ? Axis.vertical : Axis.horizontal,
+            // --- 1. HEADER ---
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "NOVA Dashboard",
-                      style: TextStyle(color: kTextWhite, fontSize: isMobile ? 26 : 32, fontWeight: FontWeight.w800),
+                      "Mission Control",
+                      style: TextStyle(color: kTextGrey, fontSize: 14, letterSpacing: 1.2),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Text(
-                      "Your data at a glance",
-                      style: TextStyle(color: kTextGrey, fontSize: 15),
+                      "Financial Overview",
+                      style: TextStyle(color: kTextWhite, fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-                if (isMobile) const SizedBox(height: 20),
-                // "New Analysis" Button
-                ElevatedButton.icon(
-                  onPressed: () => onNavigate(1), 
-                  icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                  label: const Text("New Analysis", style: TextStyle(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBankPrimary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 8,
-                    shadowColor: kBankPrimary.withOpacity(0.4),
-                  ),
+                CircleAvatar(
+                  backgroundColor: kBankSurfaceLight,
+                  radius: 24,
+                  child: const Icon(Icons.notifications_outlined, color: kTextWhite),
                 )
               ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
 
-            // --- CARDS SECTION (Adaptive) ---
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final cards = [
-                  // 1. QUERY CARD
-                  ValueListenableBuilder<int>(
-                    valueListenable: stats.queryCount,
-                    builder: (ctx, count, _) {
-                      return _BankCard(
-                        title: "Total Queries",
-                        value: "$count",
-                        subtitle: "AI assisted querries",
-                        icon: Icons.api_rounded,
-                        isPrimary: true,
-                      );
-                    },
-                  ),
-                  // 2. REPORTS CARD
-                  ValueListenableBuilder<List<Report>>(
-                    valueListenable: reports.reportsNotifier,
-                    builder: (ctx, reportList, _) {
-                      return _BankCard(
-                        title: "Reports Generated",
-                        value: "${reportList.length}",
-                        subtitle: "Exported files",
-                        icon: Icons.description_rounded,
-                        isPrimary: false,
-                      );
-                    },
-                  ),
-                  // 3. STATIC CARD
-                  ValueListenableBuilder<List<Report>>(
-                    valueListenable: reports.reportsNotifier,
-                    builder: (context, reportList, _) {
-                      final int totalBytes = reportList.fold(
-                        0, 
-                        (sum, report) => sum + (report.content?.length ?? 0)
-                      );
-                      final String usedData = _formatDataSize(totalBytes);
-                      return _BankCard(
-                        title: "Data Processed",
-                        value: "$usedData / 5 GB",
-                        subtitle: "Cloud usage",
-                        icon: Icons.cloud_done_outlined,
-                        isPrimary: false,
-                      );
-                    },
-                  ),
-                ];
-
-                if (isMobile) {
-                  return Column(
-                    children: cards.map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c)).toList(),
-                  );
-                } else {
-                  return Row(
-                    children: cards.map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: c))).toList(),
-                  );
-                }
-              },
-            ),
-
-            const SizedBox(height: 50),
-
-            // --- QUICK ACTIONS ---
-            Text("Quick Actions", style: TextStyle(color: kTextWhite, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _ActionTile(
-                  icon: Icons.chat_bubble_outline_rounded, 
-                  label: "AI Advisor", 
-                  subLabel: "Get insights",
-                  isMobile: isMobile,
-                  onTap: () => onNavigate(1)
+            // --- 2. MAIN KPI (SPEND) ---
+            // A big hero card with a trend line
+            Container(
+              height: 240,
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [kBankPrimary, kBankPrimary.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                _ActionTile(
-                  icon: Icons.receipt_long_rounded, 
-                  label: "View Reports", 
-                  subLabel: "Download CSVs",
-                  isMobile: isMobile,
-                  onTap: () => onNavigate(2)
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: kBankPrimary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text("THIS MONTH", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                      const Icon(Icons.trending_up, color: Colors.white70),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    currency.format(1245000), // Hardcoded 'Business' number
+                    style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
+                  ),
+                  const Text(
+                    "Total Spend across all accounts",
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+                  // Mini Sparkline Chart
+                  SizedBox(
+                    height: 50,
+                    child: LineChart(
+                      LineChartData(
+                        gridData: FlGridData(show: false),
+                        titlesData: FlTitlesData(show: false),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: [
+                              const FlSpot(0, 3),
+                              const FlSpot(1, 1),
+                              const FlSpot(2, 4),
+                              const FlSpot(3, 2),
+                              const FlSpot(4, 5),
+                              const FlSpot(5, 3),
+                              const FlSpot(6, 6),
+                            ],
+                            isCurved: true,
+                            color: Colors.white,
+                            barWidth: 3,
+                            dotData: FlDotData(show: false),
+                            belowBarData: BarAreaData(show: false),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+
+            // --- 3. SECONDARY METRICS (Row) ---
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricCard(
+                    label: "Transactions",
+                    value: "1,204",
+                    trend: "+12%",
+                    icon: Icons.receipt_long,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _MetricCard(
+                    label: "Avg. Ticket",
+                    value: "₹840",
+                    trend: "-2%",
+                    icon: Icons.pie_chart,
+                    isPositive: false,
+                  ),
                 ),
               ],
-            )
+            ),
+
+            const SizedBox(height: 40),
+
+            // --- 4. DIRECT ACTIONS ---
+            Text(
+              "Quick Actions",
+              style: TextStyle(color: kTextWhite, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            
+            // Replaced "Query Count" buttons with "Product" buttons
+            _ActionRow(
+              icon: Icons.analytics_rounded,
+              title: "Deep Dive Analysis",
+              subtitle: "Open the Insights Studio",
+              color: Colors.purpleAccent,
+              onTap: () => onNavigate(1), // Goes to InsightsPage
+            ),
+            const SizedBox(height: 12),
+            _ActionRow(
+              icon: Icons.chat_bubble_rounded,
+              title: "Ask AI Advisor",
+              subtitle: "Chat with your raw data",
+              color: Colors.blueAccent,
+              onTap: () => onNavigate(2), // Goes to ChatPage (assuming index 2 is chat)
+            ),
           ],
         ),
       ),
@@ -165,134 +185,116 @@ String _formatDataSize(int totalBytes) {
   }
 }
 
-class _BankCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final bool isPrimary;
+// -----------------------------------------------------------------------------
+// HELPER WIDGETS
+// -----------------------------------------------------------------------------
 
-  const _BankCard({
-    required this.title,
+class _MetricCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final String trend;
+  final IconData icon;
+  final bool isPositive;
+
+  const _MetricCard({
+    required this.label,
     required this.value,
-    required this.subtitle,
+    required this.trend,
     required this.icon,
-    this.isPrimary = false,
+    this.isPositive = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 200,
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isPrimary ? kBankPrimary : kBankSurface,
-        borderRadius: BorderRadius.circular(24),
-        border: isPrimary ? null : Border.all(color: kBorderColor),
-        gradient: isPrimary ? const LinearGradient(
-          colors: [kBankPrimary, kBankAccent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ) : null,
-        boxShadow: isPrimary ? [
-           BoxShadow(color: kBankPrimary.withOpacity(0.3), blurRadius: 24, offset: const Offset(0, 10))
-        ] : null,
+        color: kBankSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Icon(icon, color: kTextGrey, size: 20),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isPrimary ? Colors.white.withOpacity(0.2) : kBankSurfaceLight,
-                  shape: BoxShape.circle,
+                  color: isPositive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: isPrimary ? Colors.white : kTextWhite, size: 22),
-              ),
-              if (isPrimary)
-                const Icon(Icons.blur_on, color: Colors.white24, size: 30),
+                child: Text(
+                  trend,
+                  style: TextStyle(
+                    color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value, style: TextStyle(
-                color: isPrimary ? Colors.white : kTextWhite,
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -1.0,
-              )),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(title.toUpperCase(), style: TextStyle(
-                    color: isPrimary ? Colors.white70 : kTextGrey,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  )),
-                  const Spacer(),
-                  Text(subtitle, style: TextStyle(
-                    color: isPrimary ? Colors.white60 : kTextGrey.withOpacity(0.5),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  )),
-                ],
-              ),
-            ],
-          )
+          const SizedBox(height: 16),
+          Text(value, style: const TextStyle(color: kTextWhite, fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: kTextGrey, fontSize: 12)),
         ],
       ),
     );
   }
 }
 
-class _ActionTile extends StatelessWidget {
+class _ActionRow extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final String subLabel;
+  final String title;
+  final String subtitle;
+  final Color color;
   final VoidCallback onTap;
-  final bool isMobile;
 
-  const _ActionTile({
-    required this.icon, 
-    required this.label, 
-    required this.subLabel, 
+  const _ActionRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
     required this.onTap,
-    required this.isMobile,
   });
 
   @override
   Widget build(BuildContext context) {
-    double width = isMobile 
-        ? (MediaQuery.of(context).size.width / 2) - 32 
-        : 160;
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      hoverColor: kBankSurfaceLight,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: width,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: kBankSurface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: kBorderColor),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Icon(icon, color: kBankPrimary, size: 32),
-            const SizedBox(height: 20),
-            Text(label, style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 15)),
-            const SizedBox(height: 4),
-            Text(subLabel, style: const TextStyle(color: kTextGrey, fontSize: 12)),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(color: kTextWhite, fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(subtitle, style: const TextStyle(color: kTextGrey, fontSize: 12)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: kTextGrey, size: 16),
           ],
         ),
       ),

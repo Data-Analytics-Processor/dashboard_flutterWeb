@@ -37,14 +37,14 @@ class SideNavBar extends StatelessWidget {
                     BoxShadow(color: kBankPrimary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))
                   ]
                 ),
-                child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 22),
+                child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 26),
               ),
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("NOVA", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
-                  Text("ANALYTICS", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                  Text("INTELLIGENCE", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                 ],
               )
             ],
@@ -52,27 +52,27 @@ class SideNavBar extends StatelessWidget {
           const SizedBox(height: 50),
 
           // --- NAVIGATION ---
-          Text("MENU", style: TextStyle(color: kTextGrey.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold)),
+          Text("PLATFORM", style: TextStyle(color: kTextGrey.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           
           _NavTile(
-            label: "Overview",
-            icon: Icons.grid_view_rounded,
-            activeIcon: Icons.grid_view_rounded,
+            label: "Mission Control",
+            icon: Icons.dashboard_outlined,
+            activeIcon: Icons.dashboard_rounded,
             isActive: selectedIndex == 0,
             onTap: () => onTabSelected(0),
           ),
           _NavTile(
-            label: "AI Advisor",
-            icon: Icons.chat_bubble_outline_rounded,
-            activeIcon: Icons.chat_bubble_rounded,
+            label: "Insights Studio",
+            icon: Icons.insights_outlined,
+            activeIcon: Icons.insights_rounded,
             isActive: selectedIndex == 1,
             onTap: () => onTabSelected(1),
           ),
           _NavTile(
-            label: "Statements",
-            icon: Icons.description_outlined,
-            activeIcon: Icons.description_rounded,
+            label: "AI Analyst",
+            icon: Icons.auto_awesome_outlined,
+            activeIcon: Icons.auto_awesome,
             isActive: selectedIndex == 2,
             onTap: () => onTabSelected(2),
           ),
@@ -92,18 +92,19 @@ class SideNavBar extends StatelessWidget {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: kBankSurfaceLight,
-                  child: const Icon(Icons.person, size: 18, color: kTextWhite),
+                  backgroundImage: const NetworkImage("https://i.pravatar.cc/150?img=11"), // Mock Profile
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("User Name", style: TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700)),
-                      Text("Pro Plan", style: TextStyle(color: kTextGrey, fontSize: 11)),
+                      const Text("Alex Sterling", style: TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700)),
+                      Text("CFO Access", style: TextStyle(color: kTextGrey, fontSize: 11)),
                     ],
                   ),
                 ),
+                const Icon(Icons.more_vert, color: kTextGrey, size: 18),
               ],
             ),
           )
@@ -142,7 +143,7 @@ class _NavTile extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: isActive ? kBankPrimary.withOpacity(0.1) : Colors.transparent,
+              color: isActive ? kBankPrimary.withOpacity(0.15) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
               border: isActive ? Border.all(color: kBankPrimary.withOpacity(0.3)) : Border.all(color: Colors.transparent),
             ),
@@ -151,17 +152,27 @@ class _NavTile extends StatelessWidget {
                 Icon(
                   isActive ? activeIcon : icon,
                   color: isActive ? kBankPrimary : kTextGrey,
-                  size: 22,
+                  size: 20,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? kBankPrimary : kTextGrey,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? kTextWhite : kTextGrey,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     fontSize: 14,
                   ),
                 ),
+                if (isActive) ...[
+                  const Spacer(),
+                  Container(
+                    width: 6, height: 6,
+                    decoration: const BoxDecoration(
+                      color: kBankPrimary,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                ]
               ],
             ),
           ),
