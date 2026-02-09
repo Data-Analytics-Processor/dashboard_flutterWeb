@@ -1,15 +1,19 @@
-// lib/pages/SideNavBar.dart
+// lib/pages/NavBar.dart
 import 'package:flutter/material.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
+import '../models/users_model.dart';
+import 'ProfilePage.dart'; 
 
 class SideNavBar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onTabSelected;
+  final User user;
 
   const SideNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTabSelected,
+    required this.user,
   });
 
   @override
@@ -42,7 +46,7 @@ class SideNavBar extends StatelessWidget {
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: const [
                   Text("NOVA", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
                   Text("INTELLIGENCE", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                 ],
@@ -79,33 +83,62 @@ class SideNavBar extends StatelessWidget {
           
           const Spacer(),
           
-          // --- USER PROFILE ---
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: kBankSurface,
+          // --- USER PROFILE (Clickable) ---
+          // 2. Wrapped in InkWell to make the whole card clickable
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                // 3. Navigate to Profile Page on click
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (context) => ProfilePage(user: user))
+                );
+              },
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: kBorderColor),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: kBankSurfaceLight,
-                  backgroundImage: const NetworkImage("https://i.pravatar.cc/150?img=11"), // Mock Profile
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kBankSurface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: kBorderColor),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+                  ]
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Alex Sterling", style: TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700)),
-                      Text("CFO Access", style: TextStyle(color: kTextGrey, fontSize: 11)),
-                    ],
-                  ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: kBankPrimary,
+                      child: Text(
+                        user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : "A",
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${user.firstName} ${user.lastName}", 
+                            style: const TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            user.role.toUpperCase(), 
+                            style: const TextStyle(color: kTextGrey, fontSize: 10),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 4. Changed icon to 'Settings/Arrow' to indicate navigation
+                    const Icon(Icons.arrow_forward_ios_rounded, color: kTextGrey, size: 14),
+                  ],
                 ),
-                const Icon(Icons.more_vert, color: kTextGrey, size: 18),
-              ],
+              ),
             ),
           )
         ],

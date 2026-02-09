@@ -5,8 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  static const String _localUrl = "https://backend-py-edco.onrender.com";
-  static const String _prodUrl = "https://backend-py-edco.onrender.com"; 
+  static const String _localUrl = "http://10.0.2.2:8000";
+  static const String _prodUrl = "http://10.0.2.2:8000";
 
   // 2. Auto-switch logic
   final String _baseUrl = kReleaseMode ? _prodUrl : _localUrl;

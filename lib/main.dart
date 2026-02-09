@@ -3,10 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 // --- IMPORTS ---
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
-import 'pages/SideNavBar.dart'; 
+import 'models/users_model.dart'; 
+import 'pages/NavBar.dart'; 
 import 'pages/HomePage.dart';
-import 'pages/ChatPage.dart';
+import 'pages/InsightsPage.dart';
 import 'pages/SavedAnalyticsPage.dart';
+import 'pages/LoginPage.dart';
+import 'pages/ProfilePage.dart';
 
 void main() {
   runApp(const AnalyticsApp());
@@ -22,7 +25,6 @@ class AnalyticsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: kBankBg,
-        // Manrope is the standard "Fintech" font. If not available, use Inter.
         textTheme: GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme),
         colorScheme: const ColorScheme.dark(
           primary: kBankPrimary,
@@ -30,7 +32,6 @@ class AnalyticsApp extends StatelessWidget {
           background: kBankBg,
           onSurface: kTextWhite,
         ),
-        // --- FIX: Use CardThemeData instead of CardTheme ---
         cardTheme: CardThemeData(
           color: kBankSurface,
           elevation: 0,
@@ -40,7 +41,6 @@ class AnalyticsApp extends StatelessWidget {
           ),
         ),
         iconTheme: const IconThemeData(color: kTextGrey),
-        // Bottom Nav Theme for Mobile
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: kBankSurface,
           selectedItemColor: kBankPrimary,
@@ -51,7 +51,12 @@ class AnalyticsApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const MainLayout(),
+      // --- ROUTING LOGIC ---
+      initialRoute: '/login', 
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const MainLayout(), 
+      },
     );
   }
 }
@@ -65,6 +70,17 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+  User? _currentUser;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Retrieve the User object passed from LoginScreen arguments
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is User) {
+      _currentUser = args;
+    }
+  }
 
   void switchTab(int index) {
     setState(() {
@@ -72,19 +88,25 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  // Pass navigation callback to HomePage
   List<Widget> get _pages => [
     HomePage(onNavigate: switchTab), 
-    const InsightsPage(),
+    const InsightsPage(), 
     const SavedAnalyticsPage(),
+    ProfilePage(user: _currentUser!),
   ];
 
   @override
   Widget build(BuildContext context) {
+    // <--- CHANGED: Safety check for null user
+    if (_currentUser == null) {
+      // If no user data (e.g. hot restart), go back to login or show loader
+      // For dev purposes, a loader prevents the crash:
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     final isMobile = Responsive.isMobile(context);
 
     return Scaffold(
-      // --- MOBILE BOTTOM NAV ---
       bottomNavigationBar: isMobile 
           ? Container(
               decoration: const BoxDecoration(
@@ -97,6 +119,7 @@ class _MainLayoutState extends State<MainLayout> {
                   BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
                   BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_rounded), label: 'AI'),
                   BottomNavigationBarItem(icon: Icon(Icons.description_rounded), label: 'Reports'),
+                  BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
                 ],
               ),
             )
@@ -105,21 +128,19 @@ class _MainLayoutState extends State<MainLayout> {
       body: SafeArea(
         child: Row(
           children: [
-            // --- DESKTOP SIDEBAR ---
             if (!isMobile)
               SizedBox(
                 width: 260,
                 child: SideNavBar(
                   selectedIndex: _selectedIndex,
                   onTabSelected: switchTab, 
+                  user: _currentUser!, // <--- CHANGED: Pass the non-null user to NavBar
                 ),
               ),
             
-            // --- VERTICAL DIVIDER (Desktop Only) ---
             if (!isMobile)
               Container(width: 1, color: kBorderColor),
   
-            // --- MAIN CONTENT AREA ---
             Expanded(
               child: Container(
                 color: kBankBg,
