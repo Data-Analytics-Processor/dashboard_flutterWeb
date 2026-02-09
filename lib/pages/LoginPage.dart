@@ -22,6 +22,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    _attemptAutoLogin();
+  }
+
   // --- ADMIN THEME (Indigo/Purple) ---
   static const Color _primaryColor = kBankPrimary; // Use constant
   static const Color _bgDark = kBankBg; // Use dark bg
@@ -55,7 +61,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 1. Client-side Prefix Validation
     if (!loginId.startsWith('ADM')) {
-      setState(() => _errorMessage = 'Invalid Admin ID. Must start with "ADM".');
+      setState(
+        () => _errorMessage = 'Invalid Admin ID. Must start with "ADM".',
+      );
       return;
     }
 
@@ -63,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final deviceId = await _getUniqueDeviceId();
-      // String? fcmToken = await NotificationService().getFcmToken(); 
+      // String? fcmToken = await NotificationService().getFcmToken();
       String? fcmToken; // Placeholder until you integrate FCM
 
       User user = await AuthService().login(
@@ -76,10 +84,34 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       // Navigate to Home
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false, arguments: user);
-
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/home', (r) => false, arguments: user);
     } catch (e) {
-      setState(() => _errorMessage = e.toString().replaceAll('Exception: ', ''));
+      setState(
+        () => _errorMessage = e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _attemptAutoLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await AuthService().tryAutoLogin();
+
+      if (!mounted) return;
+
+      if (user != null) {
+        // ✅ JWT valid + admin verified → go home
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/home', (route) => false, arguments: user);
+      }
+    } catch (_) {
+      // Silent fail → user stays on login screen
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -106,11 +138,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: _primaryColor.withOpacity(0.15),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
-                    )
+                    ),
                   ],
                   border: Border.all(color: kBorderColor), // Subtle border
                 ),
-                child: const Icon(Icons.admin_panel_settings_rounded, size: 50, color: _primaryColor),
+                child: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  size: 50,
+                  color: _primaryColor,
+                ),
               ),
               const SizedBox(height: 30),
 
@@ -141,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.black.withOpacity(0.2), // Darker shadow
                       blurRadius: 20,
                       offset: const Offset(0, 4),
-                    )
+                    ),
                   ],
                   border: Border.all(color: kBorderColor), // Subtle border
                 ),
@@ -151,50 +187,72 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: _loginIdController,
                       textCapitalization: TextCapitalization.characters,
-                      style: const TextStyle(color: kTextWhite), // Input text is White
+                      style: const TextStyle(
+                        color: kTextWhite,
+                      ), // Input text is White
                       decoration: InputDecoration(
                         labelText: 'Admin ID',
                         labelStyle: const TextStyle(color: kTextGrey),
                         hintText: 'ADM-...',
                         hintStyle: TextStyle(color: kTextGrey.withOpacity(0.5)),
-                        prefixIcon: const Icon(Icons.badge_outlined, color: _primaryColor),
+                        prefixIcon: const Icon(
+                          Icons.badge_outlined,
+                          color: _primaryColor,
+                        ),
                         filled: true,
-                        fillColor: kBankSurfaceLight, // Slightly lighter dark bg for input
+                        fillColor:
+                            kBankSurfaceLight, // Slightly lighter dark bg for input
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 16,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Password Field
                     TextField(
                       controller: _passwordController,
                       obscureText: !_isPasswordVisible,
-                      style: const TextStyle(color: kTextWhite), // Input text is White
+                      style: const TextStyle(
+                        color: kTextWhite,
+                      ), // Input text is White
                       decoration: InputDecoration(
                         labelText: 'Password',
                         labelStyle: const TextStyle(color: kTextGrey),
-                        prefixIcon: const Icon(Icons.lock_outline, color: _primaryColor),
+                        prefixIcon: const Icon(
+                          Icons.lock_outline,
+                          color: _primaryColor,
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: kTextGrey,
                           ),
-                          onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                          onPressed: () => setState(
+                            () => _isPasswordVisible = !_isPasswordVisible,
+                          ),
                         ),
                         filled: true,
-                        fillColor: kBankSurfaceLight, // Slightly lighter dark bg for input
+                        fillColor:
+                            kBankSurfaceLight, // Slightly lighter dark bg for input
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16,
+                          horizontal: 16,
+                        ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
 
                     // Error Message
@@ -204,13 +262,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: kExpenseRed.withOpacity(0.1), // Red bg with opacity
+                          color: kExpenseRed.withOpacity(
+                            0.1,
+                          ), // Red bg with opacity
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: kExpenseRed.withOpacity(0.3)),
+                          border: Border.all(
+                            color: kExpenseRed.withOpacity(0.3),
+                          ),
                         ),
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(color: kExpenseRed, fontSize: 13), // Red text
+                          style: const TextStyle(
+                            color: kExpenseRed,
+                            fontSize: 13,
+                          ), // Red text
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -223,18 +288,33 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _primaryColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           elevation: 0,
                         ),
-                        child: _isLoading 
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
             ],
           ),
         ),
