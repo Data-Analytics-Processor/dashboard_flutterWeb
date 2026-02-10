@@ -1,72 +1,196 @@
 // lib/pages/InsightsPage.dart
-import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
+import '../api/api_service.dart';
+import '../models/collectionReports_model.dart';
+import '../models/projectionReports_model.dart';
+import '../listView/collectionListView.dart';
+import '../listView/projectionListView.dart';
 
 class InsightsPage extends StatefulWidget {
-  const InsightsPage({super.key});
+  final int initialTabIndex; // 0 for Collections, 1 for Projections
+
+  const InsightsPage({super.key, this.initialTabIndex = 0});
 
   @override
   State<InsightsPage> createState() => _InsightsPageState();
 }
 
-class _InsightsPageState extends State<InsightsPage> {
-  // ---------------------------------------------------------------------------
-  // 1. DATA SIMULATION
-  // ---------------------------------------------------------------------------
-  final List<Map<String, dynamic>> _rawData = List.generate(50, (index) {
-    final random = Random();
-    final date = DateTime.now().subtract(Duration(days: random.nextInt(30)));
-    final amount = (random.nextDouble() * 500) + 20;
-    final categories = ['SaaS', 'Infrastructure', 'Marketing', 'Office', 'Travel'];
-    return {
-      'id': 'TRX-${1000 + index}',
-      'date': date,
-      'amount': amount,
-      'category': categories[random.nextInt(categories.length)],
-      'merchant': 'Vendor ${String.fromCharCode(65 + random.nextInt(26))}',
-    };
-  })..sort((a, b) => b['date'].compareTo(a['date']));
+class _InsightsPageState extends State<InsightsPage>
+    with TickerProviderStateMixin {
+  final ApiService _api = ApiService();
+  bool _isLoading = true;
 
-  // Filter State
-  String _selectedTimeRange = 'Last 30 Days';
-  final List<String> _timeRanges = ['Last 7 Days', 'Last 30 Days', 'All Time'];
+  List<CollectionReport> _colData = [];
+  List<ProjectionReport> _projData = [];
+
+  // Tab Controllers
+  late TabController _mainTabController; // Top Level: Collection vs Projection
+  late TabController _groupTabController; // Sub Level: Dealer, Zone, etc.
+
+  final List<String> _groupTabs = [
+    "Dealer Wise",
+    "Zone Wise",
+    "District Wise",
+    "User Wise",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _mainTabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
+    _groupTabController = TabController(length: _groupTabs.length, vsync: this);
+
+    // Add listener to rebuild when main tab changes
+    _mainTabController.addListener(() {
+      if (_mainTabController.indexIsChanging) setState(() {});
+    });
+
+    _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _mainTabController.dispose();
+    _groupTabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(InsightsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the parent passes a new tab index, animate to it
+    if (widget.initialTabIndex != oldWidget.initialTabIndex) {
+      _mainTabController.animateTo(widget.initialTabIndex);
+    }
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final cData = await _api.fetchCollectionReports(limit: 50);
+      final pData = await _api.fetchProjectionReports(limit: 50);
+
+      if (mounted) {
+        setState(() {
+          _colData = cData;
+          _projData = pData;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Insights Fetch Error: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // --- Grouping Logic ---
+  Map<String, List<dynamic>> _groupData(bool isCollection, String criterion) {
+    Map<String, List<dynamic>> grouped = {};
+
+    final list = isCollection ? _colData : _projData;
+
+    for (var item in list) {
+      String key = "Unknown";
+
+      if (isCollection) {
+        final c = item as CollectionReport;
+        if (criterion == "Dealer Wise") {
+          key = c.partyName;
+        } else if (criterion == "Zone Wise") {
+          key = c.zone ?? "No Zone";
+        } else if (criterion == "District Wise") {
+          key = c.district ?? "No District";
+        } else if (criterion == "User Wise") {
+          key = c.salesPromoterName ?? "Unknown User";
+        }
+      } else {
+        final p = item as ProjectionReport;
+        if (criterion == "Dealer Wise") {
+          key = p.collectionDealerName ?? p.orderDealerName ?? "Unknown";
+        } else if (criterion == "Zone Wise") {
+          key = p.zone;
+        } else if (criterion == "District Wise") {
+          key = "N/A";
+        } // Projections might not have District
+        else if (criterion == "User Wise") {
+          key = "User ${p.salesPromoterUserId ?? 'N/A'}";
+        }
+      }
+
+      if (!grouped.containsKey(key)) grouped[key] = [];
+      grouped[key]!.add(item);
+    }
+    return grouped;
+  }
 
   @override
   Widget build(BuildContext context) {
-    // -------------------------------------------------------------------------
-    // 2. AGGREGATION LOGIC
-    // -------------------------------------------------------------------------
-    final totalSpend = _rawData.fold(0.0, (sum, item) => sum + (item['amount'] as double));
-    final avgSpend = _rawData.isEmpty ? 0.0 : totalSpend / _rawData.length;
+    if (_isLoading)
+      return const Center(
+        child: CircularProgressIndicator(color: kBankPrimary),
+      );
 
-    // Group by Category
-    final Map<String, double> categorySpend = {};
-    for (var row in _rawData) {
-      final cat = row['category'] as String;
-      final amt = row['amount'] as double;
-      categorySpend[cat] = (categorySpend[cat] ?? 0) + amt;
+    final isCollection = _mainTabController.index == 0;
+
+    // --- Aggregations based on selected Main Tab ---
+    double totalAmount = 0;
+    int count = 0;
+    Map<int, double> dailyMap = {};
+    Map<String, double> catMap = {};
+
+    if (isCollection) {
+      totalAmount = _colData.fold(0.0, (s, i) => s + i.amount);
+      count = _colData.length;
+      for (var row in _colData) {
+        dailyMap[row.voucherDate.day] =
+            (dailyMap[row.voucherDate.day] ?? 0) + row.amount;
+        catMap[row.institution] = (catMap[row.institution] ?? 0) + row.amount;
+      }
+    } else {
+      totalAmount = _projData.fold(
+        0.0,
+        (s, i) => s + (i.collectionAmount ?? 0),
+      );
+      count = _projData.length;
+      for (var row in _projData) {
+        dailyMap[row.reportDate.day] =
+            (dailyMap[row.reportDate.day] ?? 0) + (row.collectionAmount ?? 0);
+        catMap[row.institution] =
+            (catMap[row.institution] ?? 0) + (row.collectionAmount ?? 0);
+      }
     }
 
-    // Group by Date
-    final Map<int, double> dailySpend = {};
-    for (var row in _rawData) {
-      final date = row['date'] as DateTime;
-      final dayKey = date.day;
-      dailySpend[dayKey] = (dailySpend[dayKey] ?? 0) + (row['amount'] as double);
-    }
+    final avgAmount = count == 0 ? 0.0 : totalAmount / count;
 
-    // -------------------------------------------------------------------------
-    // 3. RESPONSIVE UI BUILD
-    // -------------------------------------------------------------------------
     return Scaffold(
       backgroundColor: kBankBg,
-      appBar: _buildAppBar(),
+      appBar: AppBar(
+        backgroundColor: kBankBg,
+        elevation: 0,
+        title: const Text(
+          "Analysis Studio",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        bottom: TabBar(
+          controller: _mainTabController,
+          indicatorColor: kBankPrimary,
+          labelColor: kTextWhite,
+          unselectedLabelColor: kTextGrey,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(text: "COLLECTIONS"),
+            Tab(text: "PROJECTIONS"),
+          ],
+        ),
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Breakpoint: If width is less than 900, treat as mobile/tablet
           final isMobile = constraints.maxWidth < 900;
 
           return SingleChildScrollView(
@@ -74,29 +198,29 @@ class _InsightsPageState extends State<InsightsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- HEADER ---
-                _buildHeader(isMobile),
+                _buildHeader(isCollection),
                 const SizedBox(height: 24),
 
-                // --- KPI CARDS (Responsive) ---
+                // KPI Section
                 _buildKPISection(
                   isMobile: isMobile,
-                  totalSpend: totalSpend,
-                  count: _rawData.length,
-                  avgSpend: avgSpend,
+                  total: totalAmount,
+                  count: count,
+                  avg: avgAmount,
+                  isCollection: isCollection,
                 ),
                 const SizedBox(height: 24),
 
-                // --- CHARTS ROW (Responsive) ---
+                // Charts
                 _buildChartsSection(
                   isMobile: isMobile,
-                  dailySpend: dailySpend,
-                  categorySpend: categorySpend,
+                  dailyData: dailyMap,
+                  catData: catMap,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-                // --- DRILL DOWN TABLE ---
-                _buildRecentTransactionsTable(),
+                // --- SUB TABS & LIST VIEW ---
+                _buildSubTabsSection(isCollection),
               ],
             ),
           );
@@ -105,49 +229,180 @@ class _InsightsPageState extends State<InsightsPage> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // RESPONSIVE SECTIONS
-  // ---------------------------------------------------------------------------
+  Widget _buildSubTabsSection(bool isCollection) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _groupTabController,
+          isScrollable: true,
+          labelColor: kBankPrimary,
+          unselectedLabelColor: kTextGrey,
+          indicatorColor: kBankPrimary,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+          tabs: _groupTabs.map((t) => Tab(text: t)).toList(),
+          onTap: (index) => setState(() {}),
+        ),
+        const SizedBox(height: 20),
+        _buildGroupedListView(isCollection),
+      ],
+    );
+  }
+
+  Widget _buildGroupedListView(bool isCollection) {
+    final currentTab = _groupTabs[_groupTabController.index];
+    final groupedData = _groupData(isCollection, currentTab);
+
+    final currency = NumberFormat.simpleCurrency(
+      locale: 'en_IN',
+      decimalDigits: 0,
+    );
+
+    // Sort by value descending
+    final sortedKeys = groupedData.keys.toList()
+      ..sort((a, b) {
+        double getSum(List<dynamic> list) => list.fold(0.0, (s, i) {
+          if (isCollection) return s + (i as CollectionReport).amount;
+          return s + ((i as ProjectionReport).collectionAmount ?? 0);
+        });
+        return getSum(groupedData[b]!).compareTo(getSum(groupedData[a]!));
+      });
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: sortedKeys.length,
+      itemBuilder: (context, index) {
+        final key = sortedKeys[index];
+        final items = groupedData[key]!;
+
+        double total = 0;
+        if (isCollection) {
+          total = items.fold(0.0, (s, i) => s + (i as CollectionReport).amount);
+        } else {
+          total = items.fold(
+            0.0,
+            (s, i) => s + ((i as ProjectionReport).collectionAmount ?? 0),
+          );
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: kBankSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kBorderColor),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      key,
+                      style: const TextStyle(
+                        color: kTextWhite,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    currency.format(total),
+                    style: TextStyle(
+                      color: isCollection
+                          ? kBankPrimary
+                          : Colors.deepPurpleAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+              subtitle: Text(
+                "${items.length} Records",
+                style: const TextStyle(color: kTextGrey, fontSize: 12),
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: isCollection
+                      ? CollectionListView(
+                          collections: items.cast<CollectionReport>(),
+                        )
+                      : ProjectionListView(
+                          projections: items.cast<ProjectionReport>(),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String safeFormat(NumberFormat fmt, double v) {
+    if (!v.isFinite) return "₹0";
+    return fmt.format(v);
+  }
 
   Widget _buildKPISection({
     required bool isMobile,
-    required double totalSpend,
+    required double total,
     required int count,
-    required double avgSpend,
+    required double avg,
+    required bool isCollection,
   }) {
+    final currency = NumberFormat.compactCurrency(
+      symbol: '₹',
+      locale: 'en_IN',
+      decimalDigits: 1,
+    );
+    final currencySimple = NumberFormat.simpleCurrency(
+      locale: 'en_IN',
+      decimalDigits: 0,
+    );
+    final color = isCollection ? kBankPrimary : Colors.deepPurpleAccent;
+
     final cards = [
       _KPICard(
-        title: "Total Spend",
-        value: NumberFormat.simpleCurrency().format(totalSpend),
-        icon: Icons.attach_money,
-        color: kBankPrimary,
+        title: "Total Value",
+        value: safeFormat(currency, total),
+        icon: Icons.account_balance_wallet,
+        color: color,
       ),
       _KPICard(
-        title: "Transactions",
+        title: "Count",
         value: count.toString(),
         icon: Icons.receipt_long,
         color: Colors.orangeAccent,
       ),
       _KPICard(
-        title: "Avg. Ticket",
-        value: NumberFormat.simpleCurrency(decimalDigits: 0).format(avgSpend),
+        title: "Avg. Value",
+        value: currencySimple.format(avg),
         icon: Icons.analytics,
         color: Colors.tealAccent,
       ),
     ];
 
     if (isMobile) {
-      // Mobile: Column of cards
       return Column(
         children: cards
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: c,
-                ))
+            .map(
+              (c) =>
+                  Padding(padding: const EdgeInsets.only(bottom: 16), child: c),
+            )
             .toList(),
       );
     } else {
-      // Desktop: Row of cards
       return Row(
         children: [
           Expanded(child: cards[0]),
@@ -160,32 +415,50 @@ class _InsightsPageState extends State<InsightsPage> {
     }
   }
 
+  // Charts & Header ...
+  Widget _buildHeader(bool isCollection) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isCollection ? "Collection Insights" : "Projection Insights",
+          style: const TextStyle(
+            color: kTextWhite,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isCollection
+              ? "Realized revenue breakdown"
+              : "Planned targets breakdown",
+          style: const TextStyle(color: kTextGrey, fontSize: 14),
+        ),
+      ],
+    );
+  }
+
   Widget _buildChartsSection({
     required bool isMobile,
-    required Map<int, double> dailySpend,
-    required Map<String, double> categorySpend,
+    required Map<int, double> dailyData,
+    required Map<String, double> catData,
   }) {
     final trendChart = _ChartContainer(
-      title: "Spend Trend",
-      child: _SpendLineChart(dailyData: dailySpend),
+      title: "Daily Trend",
+      child: _SpendLineChart(dailyData: dailyData),
     );
 
     final catChart = _ChartContainer(
-      title: "Top Categories",
-      child: _CategoryBreakdown(data: categorySpend),
+      title: "Institution Split",
+      child: _CategoryBreakdown(data: catData),
     );
 
     if (isMobile) {
-      // Mobile: Stacked Charts
       return Column(
-        children: [
-          trendChart,
-          const SizedBox(height: 24),
-          catChart,
-        ],
+        children: [trendChart, const SizedBox(height: 24), catChart],
       );
     } else {
-      // Desktop: Side by Side (2:1 Ratio)
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -196,161 +469,25 @@ class _InsightsPageState extends State<InsightsPage> {
       );
     }
   }
-
-  Widget _buildHeader(bool isMobile) {
-    // If mobile, stack the text and the button. If desktop, separate them.
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Dashboard", style: TextStyle(color: kTextWhite, fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          const Text("Real-time financial overview", style: TextStyle(color: kTextGrey, fontSize: 14)),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.download, size: 16),
-              label: const Text("Export CSV"),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: kTextGrey,
-                side: const BorderSide(color: kBorderColor),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          )
-        ],
-      );
-    } else {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text("Dashboard", style: TextStyle(color: kTextWhite, fontSize: 24, fontWeight: FontWeight.bold)),
-              SizedBox(height: 4),
-              Text("Real-time overview of your financial data", style: TextStyle(color: kTextGrey, fontSize: 14)),
-            ],
-          ),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.download, size: 16),
-            label: const Text("Export CSV"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: kTextGrey,
-              side: const BorderSide(color: kBorderColor),
-            ),
-          )
-        ],
-      );
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // SHARED UI COMPONENTS (AppBar, Table, Cards)
-  // ---------------------------------------------------------------------------
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: kBankBg,
-      elevation: 0,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBankPrimary.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.insights, color: kBankPrimary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          const Text("Financial Insights", style: TextStyle(color: kTextWhite, fontSize: 16, fontWeight: FontWeight.bold)),
-        ],
-      ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: kBankSurfaceLight,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: kBorderColor),
-          ),
-          child: DropdownButton<String>(
-            value: _selectedTimeRange,
-            dropdownColor: kBankSurface,
-            underline: const SizedBox(),
-            icon: const Icon(Icons.keyboard_arrow_down, color: kTextGrey),
-            style: const TextStyle(color: kTextWhite, fontSize: 13),
-            items: _timeRanges.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-            onChanged: (v) => setState(() => _selectedTimeRange = v!),
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildRecentTransactionsTable() {
-    return Container(
-      decoration: BoxDecoration(
-        color: kBankSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: const Text("Recent Transactions", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold)),
-          ),
-          const Divider(height: 1, color: kBorderColor),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _rawData.take(8).length,
-            separatorBuilder: (_, __) => const Divider(height: 1, color: kBorderColor),
-            itemBuilder: (context, index) {
-              final item = _rawData[index];
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                leading: CircleAvatar(
-                  backgroundColor: kBankSurfaceLight,
-                  child: Icon(Icons.business, color: kTextGrey, size: 18),
-                ),
-                title: Text(item['merchant'], style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.w500)),
-                subtitle: Text(DateFormat('MMM dd, yyyy').format(item['date']), style: const TextStyle(color: kTextGrey, fontSize: 12)),
-                trailing: Text(
-                  NumberFormat.simpleCurrency().format(item['amount']),
-                  style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// -----------------------------------------------------------------------------
-// WIDGETS
-// -----------------------------------------------------------------------------
 class _KPICard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
   final Color color;
 
-  const _KPICard({required this.title, required this.value, required this.icon, required this.color});
+  const _KPICard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity, // Ensures full width in column mode
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kBankSurface,
@@ -363,12 +500,26 @@ class _KPICard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: kTextGrey, fontSize: 13, fontWeight: FontWeight.w500)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: kTextGrey,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               Icon(icon, color: color, size: 18),
             ],
           ),
           const SizedBox(height: 12),
-          Text(value, style: const TextStyle(color: kTextWhite, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: kTextWhite,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -394,7 +545,13 @@ class _ChartContainer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: kTextWhite,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 24),
           Expanded(child: child),
         ],
@@ -409,13 +566,39 @@ class _SpendLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spots = dailyData.entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value))
-        .toList()
-      ..sort((a, b) => a.x.compareTo(b.x));
+    if (dailyData.isEmpty) {
+      return const Center(
+        child: Text("No Data", style: TextStyle(color: kTextGrey)),
+      );
+    }
+    final spots =
+        dailyData.entries
+            .map(
+              (e) => FlSpot(e.key.toDouble(), e.value.isFinite ? e.value : 0.0),
+            )
+            .toList()
+          ..sort((a, b) => a.x.compareTo(b.x));
+
+    if (spots.isEmpty || spots.every((s) => s.y == 0)) {
+      return const Center(
+        child: Text("No Data", style: TextStyle(color: kTextGrey)),
+      );
+    }
+
+    final ys = spots.map((s) => s.y).toList();
+    final minY = ys.reduce((a, b) => a < b ? a : b);
+    final maxY = ys.reduce((a, b) => a > b ? a : b);
+
+    if (minY == maxY) {
+      return const Center(
+        child: Text("No Trend", style: TextStyle(color: kTextGrey)),
+      );
+    }
 
     return LineChart(
       LineChartData(
+        minY: minY * 0.9,
+        maxY: maxY * 1.1,
         gridData: FlGridData(show: false),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -424,10 +607,13 @@ class _SpendLineChart extends StatelessWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              getTitlesWidget: (val, meta) => Text(
-                "${val.toInt()}",
-                style: const TextStyle(color: kTextGrey, fontSize: 10),
-              ),
+              getTitlesWidget: (val, meta) {
+                if (!val.isFinite) return const SizedBox();
+                return Text(
+                  val.toInt().toString(),
+                  style: const TextStyle(color: kTextGrey, fontSize: 10),
+                );
+              },
               interval: 5,
             ),
           ),
@@ -458,15 +644,24 @@ class _CategoryBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = data.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = data.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    if (sorted.isEmpty)
+      return const Center(
+        child: Text("No Data", style: TextStyle(color: kTextGrey)),
+      );
+
     final maxVal = sorted.first.value;
 
     return ListView.builder(
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         final item = sorted[index];
-        final pct = item.value / maxVal;
-        
+        final safeValue = item.value.isFinite ? item.value : 0.0;
+        final pct = (maxVal <= 0) ? 0.0 : (safeValue / maxVal).clamp(0.0, 1.0);
+
+        final safeDisplay = item.value.isFinite ? item.value : 0.0;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Column(
@@ -475,27 +670,43 @@ class _CategoryBreakdown extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(item.key, style: const TextStyle(color: kTextWhite, fontSize: 13)),
-                  Text(NumberFormat.compactCurrency(symbol: '\$').format(item.value),
-                      style: const TextStyle(color: kTextGrey, fontSize: 12)),
+                  Text(
+                    item.key,
+                    style: const TextStyle(color: kTextWhite, fontSize: 13),
+                  ),
+
+                  Text(
+                    NumberFormat.compactCurrency(
+                      symbol: '₹',
+                      locale: 'en_IN',
+                    ).format(safeDisplay),
+                    style: const TextStyle(color: kTextGrey, fontSize: 12),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
               Stack(
                 children: [
-                  Container(height: 6, decoration: BoxDecoration(color: kBankSurfaceLight, borderRadius: BorderRadius.circular(3))),
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: kBankSurfaceLight,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
                   FractionallySizedBox(
                     widthFactor: pct,
                     child: Container(
                       height: 6,
                       decoration: BoxDecoration(
-                        color: Colors.primaries[index % Colors.primaries.length],
+                        color:
+                            Colors.primaries[index % Colors.primaries.length],
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
-                  )
+                  ),
                 ],
-              )
+              ),
             ],
           ),
         );

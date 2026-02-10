@@ -3,20 +3,24 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
+import '../models/collectionReports_model.dart';
+import '../models/projectionReports_model.dart';
+import '../models/projectionVsActualReports_model.dart';
 
 class ApiService {
-  static const String _localUrl = "http://10.0.2.2:8000";
-  static const String _prodUrl = "http://10.0.2.2:8000";
+  static const String _localUrl = "http://localhost:5000"; // Chat GPT - Data Analysis backend
+  static const String _prodUrl = "https://backend-py-edco.onrender.com/"; // Chat GPT - Data Analysis backend
 
-  // 2. Auto-switch logic
+  //static const String _mycocoBaseUrl = "http://13.234.76.191"; // aws - mycoco backend for reports api
+  static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
+
+  // CHAT GPT --- DATA ANALYTICS ENDPOINTS
+  // Auto-switch logic for Data Analytics URL
   final String _baseUrl = kReleaseMode ? _prodUrl : _localUrl;
 
   final String _sessionId = const Uuid().v4();
   String get sessionId => _sessionId;
 
-  /* -----------------------------
-   * 1. GET TOOLS 
-   * ----------------------------- */
   Future<List<dynamic>> fetchTools() async {
     final res = await http.get(Uri.parse("$_baseUrl/api/v1/chatbot/tools"));
 
@@ -28,13 +32,7 @@ class ApiService {
     return data["tools"];
   }
 
-  /* -----------------------------
-   * 2. UPLOAD DATASET (Base64 -> Multipart)
-   * ----------------------------- */
-  Future<String> uploadDataset(
-    String filename,
-    String base64Content,
-  ) async {
+  Future<String> uploadDataset(String filename, String base64Content) async {
     // 1. Decode Base64 to bytes
     List<int> fileBytes = base64Decode(base64Content);
 
@@ -46,11 +44,7 @@ class ApiService {
 
     // 3. Add the file
     request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        fileBytes,
-        filename: filename,
-      ),
+      http.MultipartFile.fromBytes('file', fileBytes, filename: filename),
     );
 
     // 4. Send
@@ -66,10 +60,6 @@ class ApiService {
     return data["file_path"];
   }
 
-  /* -----------------------------
-   * 3. CHAT (The Unified Brain)
-   * Replaces executeTool & explainResult
-   * ----------------------------- */
   Future<Map<String, dynamic>> sendChat({
     required String message,
     String? csvFilePath, // Optional: Only send if a file is uploaded
@@ -91,4 +81,68 @@ class ApiService {
     }
     return jsonDecode(res.body);
   }
+
+  // ---- xxxxx Data Analytics endpoints end xxxx-----
+
+  // --------- API endpoints for REPORTS ----------
+  Future<List<CollectionReport>> fetchCollectionReports({
+    int limit = 100,
+  }) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/collection-reports?limit=$limit",
+    );
+
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => CollectionReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch collections: ${res.statusCode}");
+  }
+
+  Future<List<ProjectionVsActualReport>> fetchProjectionVsActual({
+    int limit = 100,
+  }) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/projection-vs-actual?limit=$limit",
+    );
+
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => ProjectionVsActualReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch projection reports: ${res.statusCode}");
+  }
+
+  Future<List<ProjectionReport>> fetchProjectionReports({
+    int limit = 100,
+  }) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/projection-reports?limit=$limit",
+    );
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => ProjectionReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch projection plans: ${res.statusCode}");
+  }
+
+  // ------xxxx Reports Endpoints End xxxx-------
 }

@@ -3,19 +3,112 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
+import '../api/api_service.dart';
+import '../models/collectionReports_model.dart';
+import '../models/projectionReports_model.dart'; // Added Import
 
-class HomePage extends StatelessWidget {
-  final Function(int) onNavigate;
+class HomePage extends StatefulWidget {
+  final Function(int, {int initialTab})
+  onNavigate; // Updated callback signature
 
   const HomePage({super.key, required this.onNavigate});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final ApiService _api = ApiService();
+  bool _isLoading = true;
+  String? _error;
+
+  List<CollectionReport> _collections = [];
+  List<ProjectionReport> _projections = []; // Store projections
+
+  // Aggregated Stats
+  double _totalCollection = 0;
+  double _totalOrderProjection = 0;
+  double _totalCollectionProjection = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      // Fetch both Collections and Projections
+      final colData = await _api.fetchCollectionReports(limit: 50);
+      final projData = await _api.fetchProjectionReports(limit: 50);
+
+      if (mounted) {
+        setState(() {
+          _collections = colData;
+          _projections = projData;
+          _calculateStats();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading home data: $e");
+      if (mounted) {
+        setState(() {
+          _error = "Failed to load data";
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _calculateStats() {
+    _totalCollection = _collections.fold(0.0, (sum, item) {
+      final v = item.amount;
+      return sum + (v.isFinite ? v : 0.0);
+    });
+
+    _totalOrderProjection = _projections.fold(0.0, (sum, item) {
+      final v = item.orderQtyMt ?? 0.0;
+      return sum + (v.isFinite ? v : 0.0);
+    });
+
+    _totalCollectionProjection = _projections.fold(0.0, (sum, item) {
+      final v = item.collectionAmount ?? 0.0;
+      return sum + (v.isFinite ? v : 0.0);
+    });
+  }
+
+  String safeCurrency(NumberFormat fmt, double value) {
+    if (!value.isFinite) return "₹0";
+    return fmt.format(value);
+  }
+
+  String safeIntLabel(double value) {
+    if (!value.isFinite) return "0";
+    return value.toStringAsFixed(0);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Mock Data for "Business Vibe"
-    // In a real app, this would come from a BusinessService, not a generic StatsService
-    final currency = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final currencyCompact = NumberFormat.compactCurrency(
+      symbol: '₹',
+      decimalDigits: 1,
+      locale: 'en_IN',
+    );
     final isMobile = MediaQuery.of(context).size.width < 800;
-    
+
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: kBankPrimary),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Text(_error!, style: const TextStyle(color: kExpenseRed)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: kBankBg,
       body: SingleChildScrollView(
@@ -29,189 +122,112 @@ class HomePage extends StatelessWidget {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: const [
                     Text(
                       "Mission Control",
-                      style: TextStyle(color: kTextGrey, fontSize: 14, letterSpacing: 1.2),
+                      style: TextStyle(
+                        color: kTextGrey,
+                        fontSize: 14,
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       "Financial Overview",
-                      style: TextStyle(color: kTextWhite, fontSize: 28, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: kTextWhite,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 CircleAvatar(
                   backgroundColor: kBankSurfaceLight,
                   radius: 24,
-                  child: const Icon(Icons.notifications_outlined, color: kTextWhite),
-                )
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: kTextWhite,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 32),
 
-            // --- 2. MAIN KPI (SPEND) ---
-            // A big hero card with a trend line
-            Container(
-              height: 240,
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [kBankPrimary, kBankPrimary.withOpacity(0.8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            // --- 2. MAIN KPI: COLLECTIONS ---
+            InkWell(
+              onTap: () =>
+                  widget.onNavigate(1, initialTab: 0), // Tab 0 = Collections
+              borderRadius: BorderRadius.circular(24),
+              child: _buildBigCard(
+                title: "TOTAL COLLECTIONS",
+                value: safeCurrency(currencyCompact, _totalCollection),
+                subtitle: "Realized Revenue (Last 50)",
+                color1: kBankPrimary,
+                color2: kBankPrimary.withOpacity(0.8),
+                chart: _buildSparkline(
+                  _collections.map((e) => e.amount).toList(),
                 ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(color: kBankPrimary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text("THIS MONTH", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ),
-                      const Icon(Icons.trending_up, color: Colors.white70),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text(
-                    currency.format(1245000), // Hardcoded 'Business' number
-                    style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    "Total Spend across all accounts",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 20),
-                  // Mini Sparkline Chart
-                  SizedBox(
-                    height: 50,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: FlGridData(show: false),
-                        titlesData: FlTitlesData(show: false),
-                        borderData: FlBorderData(show: false),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: [
-                              const FlSpot(0, 3),
-                              const FlSpot(1, 1),
-                              const FlSpot(2, 4),
-                              const FlSpot(3, 2),
-                              const FlSpot(4, 5),
-                              const FlSpot(5, 3),
-                              const FlSpot(6, 6),
-                            ],
-                            isCurved: true,
-                            color: Colors.white,
-                            barWidth: 3,
-                            dotData: FlDotData(show: false),
-                            belowBarData: BarAreaData(show: false),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
 
-            // --- 3. SECONDARY METRICS (Row) ---
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricCard(
-                    label: "Transactions",
-                    value: "1,204",
-                    trend: "+12%",
-                    icon: Icons.receipt_long,
-                  ),
+            // --- 3. SECONDARY KPI: PROJECTIONS ---
+            InkWell(
+              onTap: () =>
+                  widget.onNavigate(1, initialTab: 1), // Tab 1 = Projections
+              borderRadius: BorderRadius.circular(24),
+              child: _buildBigCard(
+                title: "TOTAL PROJECTIONS",
+                value: safeCurrency(
+                  currencyCompact,
+                  _totalCollectionProjection,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _MetricCard(
-                    label: "Avg. Ticket",
-                    value: "₹840",
-                    trend: "-2%",
-                    icon: Icons.pie_chart,
-                    isPositive: false,
-                  ),
+                subtitle: "Projected Collections (Last 50)",
+                color1: Colors.deepPurple,
+                color2: Colors.purpleAccent.withOpacity(0.8),
+                chart: _buildSparkline(
+                  _projections.map((e) => e.collectionAmount ?? 0).toList(),
                 ),
-              ],
+                extraValue: "${safeIntLabel(_totalOrderProjection)} MT Orders",
+              ),
             ),
 
-            const SizedBox(height: 40),
-
-            // --- 4. DIRECT ACTIONS ---
-            Text(
-              "Quick Actions",
-              style: TextStyle(color: kTextWhite, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            
-            // Replaced "Query Count" buttons with "Product" buttons
-            _ActionRow(
-              icon: Icons.analytics_rounded,
-              title: "Deep Dive Analysis",
-              subtitle: "Open the Insights Studio",
-              color: Colors.purpleAccent,
-              onTap: () => onNavigate(1), // Goes to InsightsPage
-            ),
-            const SizedBox(height: 12),
-            _ActionRow(
-              icon: Icons.chat_bubble_rounded,
-              title: "Ask AI Advisor",
-              subtitle: "Chat with your raw data",
-              color: Colors.blueAccent,
-              onTap: () => onNavigate(2), // Goes to ChatPage (assuming index 2 is chat)
-            ),
+            // Removed "Quick Actions" and "Transactions/Avg Ticket" as requested
           ],
         ),
       ),
     );
   }
-}
 
-// -----------------------------------------------------------------------------
-// HELPER WIDGETS
-// -----------------------------------------------------------------------------
-
-class _MetricCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String trend;
-  final IconData icon;
-  final bool isPositive;
-
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.trend,
-    required this.icon,
-    this.isPositive = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildBigCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color1,
+    required Color color2,
+    required Widget chart,
+    String? extraValue,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      height: 240,
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: kBankSurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kBorderColor),
+        gradient: LinearGradient(
+          colors: [color1, color2],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color1.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,84 +235,113 @@ class _MetricCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: kTextGrey, size: 20),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: isPositive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  trend,
-                  style: TextStyle(
-                    color: isPositive ? Colors.greenAccent : Colors.redAccent,
-                    fontSize: 12,
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              )
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white70,
+                size: 16,
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(value, style: const TextStyle(color: kTextWhite, fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: kTextGrey, fontSize: 12)),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 42,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                subtitle,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              if (extraValue != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    extraValue,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(height: 50, child: chart),
         ],
       ),
     );
   }
-}
 
-class _ActionRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
+  Widget _buildSparkline(List<double> values) {
+    if (values.isEmpty) return const SizedBox();
 
-  const _ActionRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
+    final safeValues = values.map((v) => v.isFinite ? v : 0.0).toList();
 
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: kBankSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: kBorderColor),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24),
+    final recent = safeValues.take(10).toList().reversed.toList();
+
+    final minY = recent.reduce((a, b) => a < b ? a : b);
+    final maxY = recent.reduce((a, b) => a > b ? a : b);
+
+    if (minY == maxY) return const SizedBox(); // 🚑 critical fix
+
+    final spots = recent
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value))
+        .toList();
+
+    return LineChart(
+      LineChartData(
+        minY: minY - (minY * 0.1),
+        maxY: maxY + (maxY * 0.1),
+        gridData: FlGridData(show: false),
+        titlesData: FlTitlesData(show: false),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: Colors.white,
+            barWidth: 3,
+            dotData: FlDotData(show: false),
+            belowBarData: BarAreaData(
+              show: true,
+              color: Colors.white.withOpacity(0.1),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: kTextWhite, fontSize: 16, fontWeight: FontWeight.w600)),
-                  Text(subtitle, style: const TextStyle(color: kTextGrey, fontSize: 12)),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: kTextGrey, size: 16),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -70,6 +70,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
+  int _insightsInitialTab = 0;
   User? _currentUser;
 
   @override
@@ -82,15 +83,16 @@ class _MainLayoutState extends State<MainLayout> {
     }
   }
 
-  void switchTab(int index) {
+  void switchTab(int index, {int initialTab = 0}) {
     setState(() {
       _selectedIndex = index;
+      _insightsInitialTab = initialTab;
     });
   }
 
   List<Widget> get _pages => [
     HomePage(onNavigate: switchTab), 
-    const InsightsPage(), 
+    InsightsPage(initialTabIndex: _insightsInitialTab), 
     const SavedAnalyticsPage(),
     ProfilePage(user: _currentUser!),
   ];
@@ -117,7 +119,7 @@ class _MainLayoutState extends State<MainLayout> {
                 onTap: switchTab,
                 items: const [
                   BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
-                  BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_rounded), label: 'AI'),
+                  BottomNavigationBarItem(icon: Icon(Icons.insights_rounded), label: 'Insights'),
                   BottomNavigationBarItem(icon: Icon(Icons.description_rounded), label: 'Reports'),
                   BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
                 ],
