@@ -10,8 +10,7 @@ import '../models/projectionVsActualReports_model.dart';
 import '../listView/projVsActualView.dart';
 
 class HomePage extends StatefulWidget {
-  final Function(int, {int initialTab})
-  onNavigate; // Updated callback signature
+  final Function(int, {int initialTab}) onNavigate;
 
   const HomePage({super.key, required this.onNavigate});
 
@@ -41,6 +40,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchData() async {
+    // If called via pull-to-refresh, we don't want to show the full screen loader,
+    // but if it's the first load, we do.
+    if (_collections.isEmpty) {
+        setState(() => _isLoading = true);
+    }
+    
     try {
       final results = await Future.wait([
         _api.fetchCollectionReports(limit: 50),
@@ -55,6 +60,7 @@ class _HomePageState extends State<HomePage> {
           _comparisons = results[2] as List<ProjectionVsActualReport>;
           _calculateStats();
           _isLoading = false;
+          _error = null;
         });
       }
     } catch (e) {
@@ -85,10 +91,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     if (_comparisons.isNotEmpty) {
-      final totalPercent = _comparisons.fold(
-        0.0,
-        (sum, item) => sum + item.percent,
-      );
+      final totalPercent = _comparisons.fold(0.0, (sum, item) => sum + item.percent);
       _avgAchievementPercent = totalPercent / _comparisons.length;
     }
   }
@@ -112,131 +115,131 @@ class _HomePageState extends State<HomePage> {
     );
     final isMobile = MediaQuery.of(context).size.width < 800;
 
-    if (_isLoading) {
+    if (_isLoading && _collections.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: kBankPrimary),
       );
     }
 
-    if (_error != null) {
+    if (_error != null && _collections.isEmpty) {
       return Center(
-        child: Text(_error!, style: const TextStyle(color: kExpenseRed)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_error!, style: const TextStyle(color: kExpenseRed)),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _fetchData,
+              style: ElevatedButton.styleFrom(backgroundColor: kBankSurfaceLight),
+              child: const Text("Retry", style: TextStyle(color: kTextWhite)),
+            )
+          ],
+        ),
       );
     }
 
     return Scaffold(
       backgroundColor: kBankBg,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 20 : 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- 1. HEADER ---
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      "Mission Control",
-                      style: TextStyle(
-                        color: kTextGrey,
-                        fontSize: 14,
-                        letterSpacing: 1.2,
-                      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchData,
+        color: kBankPrimary,
+        backgroundColor: kBankSurface,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Ensures pull-to-refresh works even if content is short
+          padding: EdgeInsets.all(isMobile ? 20 : 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- 1. HEADER ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          "JUD-JSB Admin Overview",
+                          style: TextStyle(
+                            color: kTextWhite,
+                            fontSize: 26, 
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      "Financial Overview",
-                      style: TextStyle(
-                        color: kTextWhite,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: kBankSurfaceLight,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: kBorderColor.withOpacity(0.5)),
                     ),
-                  ],
-                ),
-                CircleAvatar(
-                  backgroundColor: kBankSurfaceLight,
-                  radius: 24,
-                  child: const Icon(
-                    Icons.notifications_outlined,
-                    color: kTextWhite,
+                    child: const Icon(Icons.notifications_outlined, color: kTextWhite, size: 22),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
+                ],
+              ),
+              const SizedBox(height: 32),
 
-            // --- 2. MAIN KPI: COLLECTIONS ---
-            InkWell(
-              onTap: () =>
-                  widget.onNavigate(1, initialTab: 0), // Tab 0 = Collections
-              borderRadius: BorderRadius.circular(24),
-              child: _buildBigCard(
-                title: "TOTAL COLLECTIONS",
-                value: safeCurrency(currencyCompact, _totalCollection),
-                subtitle: "Realized Revenue (Last 50)",
-                color1: kBankPrimary,
-                color2: kBankPrimary.withOpacity(0.8),
-                chart: _buildSparkline(
-                  _collections.map((e) => e.amount).toList(),
+              // --- 2. MAIN KPI: COLLECTIONS ---
+              InkWell(
+                onTap: () => widget.onNavigate(1, initialTab: 0),
+                borderRadius: BorderRadius.circular(24),
+                child: _buildBigCard(
+                  title: "TOTAL COLLECTIONS",
+                  value: safeCurrency(currencyCompact, _totalCollection),
+                  subtitle: "Realized Revenue (Last 50)",
+                  color1: const Color(0xFF4361EE), // Royal Blue
+                  color2: const Color(0xFF3A0CA3), // Deep Blue
+                  chart: _buildSparkline(_collections.map((e) => e.amount).toList()),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-            // --- 3. SECONDARY KPI: PROJECTIONS ---
-            InkWell(
-              onTap: () =>
-                  widget.onNavigate(1, initialTab: 1), // Tab 1 = Projections
-              borderRadius: BorderRadius.circular(24),
-              child: _buildBigCard(
-                title: "TOTAL PROJECTIONS",
-                value: safeCurrency(
-                  currencyCompact,
-                  _totalCollectionProjection,
+              // --- 3. SECONDARY KPI: PROJECTIONS ---
+              InkWell(
+                onTap: () => widget.onNavigate(1, initialTab: 1),
+                borderRadius: BorderRadius.circular(24),
+                child: _buildBigCard(
+                  title: "TOTAL PROJECTIONS",
+                  value: safeCurrency(currencyCompact, _totalCollectionProjection),
+                  subtitle: "Projected Collections (Last 50)",
+                  color1: const Color(0xFF7209B7), // Purple
+                  color2: const Color(0xFFB5179E), // Magenta
+                  chart: _buildSparkline(_projections.map((e) => e.collectionAmount ?? 0).toList()),
+                  extraValue: "${safeIntLabel(_totalOrderProjection)} MT Orders",
                 ),
-                subtitle: "Projected Collections (Last 50)",
-                color1: Colors.deepPurple,
-                color2: Colors.purpleAccent.withOpacity(0.8),
-                chart: _buildSparkline(
-                  _projections.map((e) => e.collectionAmount ?? 0).toList(),
-                ),
-                extraValue: "${safeIntLabel(_totalOrderProjection)} MT Orders",
               ),
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-            // --- CARD 3: COMPARISON ---
-            InkWell(
-              onTap: () {
-                // Direct Navigation to hidden page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProjVsActualView(),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(24),
-              child: _buildBigCard(
-                title: "COMPARISON ANALYTICS",
-                value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
-                subtitle: "Avg. Target Achievement",
-                color1: Colors.teal,
-                color2: Colors.tealAccent.withOpacity(0.7),
-                // Show percent trend
-                chart: _buildSparkline(
-                  _comparisons.map((e) => e.percent).toList(),
+              // --- 4. CARD 3: COMPARISON ---
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProjVsActualView()),
+                  );
+                },
+                borderRadius: BorderRadius.circular(24),
+                child: _buildBigCard(
+                  title: "COMPARISON ANALYTICS",
+                  value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
+                  subtitle: "Avg. Target Achievement",
+                  color1: const Color(0xFF00B4D8), // Cyan
+                  color2: const Color(0xFF0077B6), // Ocean Blue
+                  chart: _buildSparkline(_comparisons.map((e) => e.percent).toList()),
+                  extraValue: "View Report >",
                 ),
-                extraValue: "View Report >",
               ),
-            ),
-          ],
+              
+              // Extra space at bottom for scrolling nicely
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
@@ -252,7 +255,7 @@ class _HomePageState extends State<HomePage> {
     String? extraValue,
   }) {
     return Container(
-      height: 240,
+      height: 220,
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -264,9 +267,9 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: color1.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: color1.withOpacity(0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -277,69 +280,45 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white70,
-                size: 16,
-              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
             ],
           ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 42,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.bold, letterSpacing: -1),
           ),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
+              Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 13)),
               if (extraValue != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black26,
+                    color: Colors.black.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     extraValue,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 20),
-          SizedBox(height: 50, child: chart),
+          const SizedBox(height: 16),
+          SizedBox(height: 40, child: chart),
         ],
       ),
     );
@@ -349,24 +328,25 @@ class _HomePageState extends State<HomePage> {
     if (values.isEmpty) return const SizedBox();
 
     final safeValues = values.map((v) => v.isFinite ? v : 0.0).toList();
+    // Take last 15 points for a smoother sparkline in card
+    final recent = safeValues.take(15).toList().reversed.toList();
 
-    final recent = safeValues.take(10).toList().reversed.toList();
+    if (recent.isEmpty) return const SizedBox();
 
     final minY = recent.reduce((a, b) => a < b ? a : b);
     final maxY = recent.reduce((a, b) => a > b ? a : b);
 
-    if (minY == maxY) return const SizedBox(); // 🚑 critical fix
+    // Prevent chart crash if flat line
+    final double range = maxY - minY;
+    final double safeMinY = range == 0 ? minY - 1 : minY;
+    final double safeMaxY = range == 0 ? maxY + 1 : maxY;
 
-    final spots = recent
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value))
-        .toList();
+    final spots = recent.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
 
     return LineChart(
       LineChartData(
-        minY: minY - (minY * 0.1),
-        maxY: maxY + (maxY * 0.1),
+        minY: safeMinY,
+        maxY: safeMaxY,
         gridData: FlGridData(show: false),
         titlesData: FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
@@ -374,12 +354,18 @@ class _HomePageState extends State<HomePage> {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: Colors.white,
-            barWidth: 3,
+            curveSmoothness: 0.4,
+            color: Colors.white.withOpacity(0.8),
+            barWidth: 2,
+            isStrokeCapRound: true,
             dotData: FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.white.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.0)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
           ),
         ],
