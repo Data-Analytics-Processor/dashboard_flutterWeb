@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../api/api_service.dart';
 import '../models/collectionReports_model.dart';
-import '../models/projectionReports_model.dart'; // Added Import
+import '../models/projectionReports_model.dart';
+import '../models/projectionVsActualReports_model.dart';
+import '../listView/projVsActualView.dart';
 
 class HomePage extends StatefulWidget {
   final Function(int, {int initialTab})
@@ -23,12 +25,14 @@ class _HomePageState extends State<HomePage> {
   String? _error;
 
   List<CollectionReport> _collections = [];
-  List<ProjectionReport> _projections = []; // Store projections
+  List<ProjectionReport> _projections = [];
+  List<ProjectionVsActualReport> _comparisons = [];
 
   // Aggregated Stats
   double _totalCollection = 0;
   double _totalOrderProjection = 0;
   double _totalCollectionProjection = 0;
+  double _avgAchievementPercent = 0;
 
   @override
   void initState() {
@@ -38,14 +42,17 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _fetchData() async {
     try {
-      // Fetch both Collections and Projections
-      final colData = await _api.fetchCollectionReports(limit: 50);
-      final projData = await _api.fetchProjectionReports(limit: 50);
+      final results = await Future.wait([
+        _api.fetchCollectionReports(limit: 50),
+        _api.fetchProjectionReports(limit: 50),
+        _api.fetchProjectionVsActual(limit: 20),
+      ]);
 
       if (mounted) {
         setState(() {
-          _collections = colData;
-          _projections = projData;
+          _collections = results[0] as List<CollectionReport>;
+          _projections = results[1] as List<ProjectionReport>;
+          _comparisons = results[2] as List<ProjectionVsActualReport>;
           _calculateStats();
           _isLoading = false;
         });
@@ -76,6 +83,14 @@ class _HomePageState extends State<HomePage> {
       final v = item.collectionAmount ?? 0.0;
       return sum + (v.isFinite ? v : 0.0);
     });
+
+    if (_comparisons.isNotEmpty) {
+      final totalPercent = _comparisons.fold(
+        0.0,
+        (sum, item) => sum + item.percent,
+      );
+      _avgAchievementPercent = totalPercent / _comparisons.length;
+    }
   }
 
   String safeCurrency(NumberFormat fmt, double value) {
@@ -194,7 +209,33 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Removed "Quick Actions" and "Transactions/Avg Ticket" as requested
+            const SizedBox(height: 24),
+
+            // --- CARD 3: COMPARISON ---
+            InkWell(
+              onTap: () {
+                // Direct Navigation to hidden page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProjVsActualView(),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: _buildBigCard(
+                title: "COMPARISON ANALYTICS",
+                value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
+                subtitle: "Avg. Target Achievement",
+                color1: Colors.teal,
+                color2: Colors.tealAccent.withOpacity(0.7),
+                // Show percent trend
+                chart: _buildSparkline(
+                  _comparisons.map((e) => e.percent).toList(),
+                ),
+                extraValue: "View Report >",
+              ),
+            ),
           ],
         ),
       ),
