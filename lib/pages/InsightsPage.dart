@@ -37,6 +37,8 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
     "User Wise",
   ];
 
+  double safe(double v) => v.isFinite ? v : 0;
+
   @override
   void initState() {
     super.initState();
@@ -179,9 +181,9 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
 
   Widget _buildAnalysisHeader(bool isCollection) {
     // Simple KPI Summary just to give context before the list
-    double total = isCollection 
-      ? _colData.fold(0, (s, e) => s + e.amount)
-      : _projData.fold(0, (s, e) => s + (e.collectionAmount ?? 0));
+    double total = isCollection
+  ? _colData.fold(0.0, (s, e) => s + safe(e.amount))
+  : _projData.fold(0.0, (s, e) => s + safe(e.collectionAmount ?? 0));
       
     final currency = NumberFormat.compactCurrency(symbol: '₹', locale: 'en_IN', decimalDigits: 1);
     
@@ -276,9 +278,9 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
         final key = sortedKeys[index];
         final items = groupedData[key]!;
 
-        double total = isCollection 
-            ? items.fold(0.0, (s, i) => s + (i as CollectionReport).amount)
-            : items.fold(0.0, (s, i) => s + ((i as ProjectionReport).collectionAmount ?? 0));
+        double total = isCollection
+    ? items.fold(0.0, (s, i) => s + safe((i as CollectionReport).amount))
+    : items.fold(0.0, (s, i) => s + safe((i as ProjectionReport).collectionAmount ?? 0));
             
         // Initial for Avatar
         final initial = key.isNotEmpty ? key[0].toUpperCase() : "?";

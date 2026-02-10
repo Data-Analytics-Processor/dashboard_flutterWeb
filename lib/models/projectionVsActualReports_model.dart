@@ -47,37 +47,39 @@ class ProjectionVsActualReport {
 
   factory ProjectionVsActualReport.fromJson(Map<String, dynamic> json) {
     // Helper to safely parse doubles from String/Number/Null
-    double parseDouble(dynamic value) {
-      if (value == null) return 0.0;
-      return double.tryParse(value.toString()) ?? 0.0;
+    double safeDouble(dynamic val) {
+      if (val == null) return 0.0;
+      return double.tryParse(val.toString()) ?? 0.0;
     }
 
     return ProjectionVsActualReport(
-      id: json['id'] ?? '',
-      reportDate: DateTime.parse(json['reportDate']),
-      institution: json['institution'] ?? '',
-      zone: json['zone'] ?? '',
-      dealerName: json['dealerName'] ?? '',
+      id: json['id']?.toString() ?? '',
+      institution: json['institution']?.toString() ?? '',
+      zone: json['zone']?.toString() ?? '',
+      dealerName: json['dealerName']?.toString() ?? 'Unknown Dealer',
       
-      // Order Metrics
-      orderProjectionMt: parseDouble(json['orderProjectionMt']),
-      actualOrderReceivedMt: parseDouble(json['actualOrderReceivedMt']),
-      doDoneMt: parseDouble(json['doDoneMt']),
-      projectionVsActualOrderMt: parseDouble(json['projectionVsActualOrderMt']),
-      actualOrderVsDoMt: parseDouble(json['actualOrderVsDoMt']),
+      reportDate: json['reportDate'] != null 
+          ? DateTime.parse(json['reportDate']) 
+          : DateTime.now(),
       
-      // Collection Metrics
-      collectionProjection: parseDouble(json['collectionProjection']),
-      actualCollection: parseDouble(json['actualCollection']),
-      shortFall: parseDouble(json['shortFall']),
-      percent: parseDouble(json['percent']),
-      
-      // Metadata
-      sourceMessageId: json['sourceMessageId'],
-      sourceFileName: json['sourceFileName'],
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
+
+      // Nullable Numerics (Converted to Safe Doubles)
+      orderProjectionMt: safeDouble(json['orderProjectionMt']),
+      actualOrderReceivedMt: safeDouble(json['actualOrderReceivedMt']),
+      doDoneMt: safeDouble(json['doDoneMt']),
+      projectionVsActualOrderMt: safeDouble(json['projectionVsActualOrderMt']),
+      actualOrderVsDoMt: safeDouble(json['actualOrderVsDoMt']),
+      collectionProjection: safeDouble(json['collectionProjection']),
+      actualCollection: safeDouble(json['actualCollection']),
+      shortFall: safeDouble(json['shortFall']),
+      percent: safeDouble(json['percent']),
+      
+      // Nullable Metadata
+      sourceMessageId: json['sourceMessageId']?.toString(),
+      sourceFileName: json['sourceFileName']?.toString(),
     );
   }
 }

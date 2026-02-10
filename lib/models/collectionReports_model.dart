@@ -38,26 +38,33 @@ class CollectionReport {
 
   factory CollectionReport.fromJson(Map<String, dynamic> json) {
     return CollectionReport(
-      id: json['id'],
-      institution: json['institution'],
-      voucherNo: json['voucherNo'],
-      // Handle date strings from API (ISO 8601)
-      voucherDate: DateTime.parse(json['voucherDate']), 
-      // Handle Numeric/Decimal types safely
-      amount: double.tryParse(json['amount'].toString()) ?? 0.0, 
-      bankAccount: json['bankAccount'],
-      remarks: json['remarks'],
-      partyName: json['partyName'],
-      salesPromoterName: json['salesPromoterName'],
-      zone: json['zone'],
-      district: json['district'],
-      dealerId: json['dealerId'],
-      salesPromoterUserId: json['salesPromoterUserId'],
-      sourceMessageId: json['sourceMessageId'],
-      sourceFileName: json['sourceFileName'],
+      id: json['id']?.toString() ?? '',
+      institution: json['institution']?.toString() ?? '',
+      voucherNo: json['voucherNo']?.toString() ?? '',
+      partyName: json['partyName']?.toString() ?? 'Unknown Party',
+      
+      voucherDate: json['voucherDate'] != null 
+          ? DateTime.parse(json['voucherDate']) 
+          : DateTime.now(),
+      
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
+          
+      amount: double.tryParse(json['amount'].toString()) ?? 0.0,
+
+      // Nullable fields (Pass through nulls correctly)
+      bankAccount: json['bankAccount']?.toString(),
+      remarks: json['remarks']?.toString(),
+      salesPromoterName: json['salesPromoterName']?.toString(),
+      zone: json['zone']?.toString(),
+      district: json['district']?.toString(),
+      dealerId: json['dealerId']?.toString(),
+      salesPromoterUserId: json['salesPromoterUserId'] is int 
+          ? json['salesPromoterUserId'] 
+          : int.tryParse(json['salesPromoterUserId'].toString()),
+      sourceMessageId: json['sourceMessageId']?.toString(),
+      sourceFileName: json['sourceFileName']?.toString(),
     );
   }
 }

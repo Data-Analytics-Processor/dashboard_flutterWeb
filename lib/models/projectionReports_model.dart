@@ -32,27 +32,36 @@ class ProjectionReport {
 
   factory ProjectionReport.fromJson(Map<String, dynamic> json) {
     return ProjectionReport(
-      id: json['id'],
-      institution: json['institution'],
-      // Handle ISO 8601 date strings
-      reportDate: DateTime.parse(json['reportDate']),
-      zone: json['zone'],
-      orderDealerName: json['orderDealerName'],
-      // Safely parse numerics (which might come as strings or numbers)
-      orderQtyMt: json['orderQtyMt'] != null 
-          ? double.tryParse(json['orderQtyMt'].toString()) 
-          : null,
-      collectionDealerName: json['collectionDealerName'],
-      collectionAmount: json['collectionAmount'] != null 
-          ? double.tryParse(json['collectionAmount'].toString()) 
-          : null,
-      dealerId: json['dealerId'],
-      salesPromoterUserId: json['salesPromoterUserId'],
-      sourceMessageId: json['sourceMessageId'],
-      sourceFileName: json['sourceFileName'],
+      id: json['id']?.toString() ?? '',
+      institution: json['institution']?.toString() ?? '',
+      zone: json['zone']?.toString() ?? 'Unknown Zone',
+      
+      reportDate: json['reportDate'] != null 
+          ? DateTime.parse(json['reportDate']) 
+          : DateTime.now(),
+          
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
+
+      // Nullable fields
+      orderDealerName: json['orderDealerName']?.toString(),
+      orderQtyMt: json['orderQtyMt'] != null 
+          ? double.tryParse(json['orderQtyMt'].toString()) 
+          : null,
+          
+      collectionDealerName: json['collectionDealerName']?.toString(),
+      collectionAmount: json['collectionAmount'] != null 
+          ? double.tryParse(json['collectionAmount'].toString()) 
+          : null,
+          
+      dealerId: json['dealerId']?.toString(),
+      salesPromoterUserId: json['salesPromoterUserId'] is int 
+          ? json['salesPromoterUserId'] 
+          : int.tryParse(json['salesPromoterUserId'].toString()),
+          
+      sourceMessageId: json['sourceMessageId']?.toString(),
+      sourceFileName: json['sourceFileName']?.toString(),
     );
   }
 }

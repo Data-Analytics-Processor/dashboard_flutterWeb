@@ -4,12 +4,36 @@ import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../models/users_model.dart';
 import '../api/auth_service.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final User user;
 
   const ProfilePage({super.key, required this.user});
 
-  Future<void> _handleLogout(BuildContext context) async {
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  late User _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = widget.user;
+  }
+
+  Future<void> _handleRefresh() async {
+    // Re-fetch user data using the existing auto-login logic which fetches the profile
+    final freshUser = await AuthService().tryAutoLogin();
+    
+    if (mounted && freshUser != null) {
+      setState(() {
+        _currentUser = freshUser;
+      });
+    }
+  }
+
+  Future<void> _handleLogout() async {
     // Show confirmation dialog
     final bool? confirm = await showDialog<bool>(
       context: context,
@@ -36,7 +60,7 @@ class ProfilePage extends StatelessWidget {
 
     if (confirm == true) {
       await AuthService().logout();
-      if (context.mounted) {
+      if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }
@@ -61,89 +85,74 @@ class ProfilePage extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: kTextGrey),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        child: Column(
-          children: [
-            // --- 1. PROFILE HEADER ---
-            _buildHeader(),
-            
-            const SizedBox(height: 32),
-
-            // --- 2. PERSONAL DETAILS ---
-            _buildSectionHeader("Personal Information"),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: kBankSurface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: kBorderColor),
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: kBankPrimary,
+        backgroundColor: kBankSurface,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Allows refresh even if content is short
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            children: [
+              // --- 1. PROFILE HEADER ---
+              _buildHeader(),
+              
+              const SizedBox(height: 32),
+    
+              // --- 2. PERSONAL DETAILS ---
+              _buildSectionHeader("Personal Information"),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: kBankSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kBorderColor),
+                ),
+                child: Column(
+                  children: [
+                    _buildInfoRow(Icons.email_outlined, "Email", _currentUser.email),
+                    _buildDivider(),
+                    _buildInfoRow(Icons.phone_outlined, "Phone", _currentUser.phoneNumber ?? "N/A"),
+                    _buildDivider(),
+                    _buildInfoRow(Icons.location_on_outlined, "Region", "${_currentUser.region ?? '-'} / ${_currentUser.area ?? '-'}"),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  _buildInfoRow(Icons.email_outlined, "Email", user.email),
-                  _buildDivider(),
-                  _buildInfoRow(Icons.phone_outlined, "Phone", user.phoneNumber ?? "N/A"),
-                  _buildDivider(),
-                  _buildInfoRow(Icons.location_on_outlined, "Region", "${user.region ?? '-'} / ${user.area ?? '-'}"),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // --- 3. ACCOUNT STATUS ---
-            _buildSectionHeader("Account Status"),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: kBankSurface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: kBorderColor),
-              ),
-              child: Column(
-                children: [
-                   _buildInfoRow(Icons.badge_outlined, "Admin ID", user.adminAppLoginId ?? "N/A"),
-                   _buildDivider(),
-                   _buildInfoRow(Icons.verified_user_outlined, "Role", user.role.toUpperCase()),
-                   _buildDivider(),
-                   _buildStatusRow(user.status),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            // --- 4. LOGOUT BUTTON ---
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _handleLogout(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kExpenseRed.withOpacity(0.1),
-                  foregroundColor: kExpenseRed,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: kExpenseRed.withOpacity(0.3)),
+    
+              const SizedBox(height: 32),
+    
+              // --- 3. LOGOUT BUTTON ---
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _handleLogout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kExpenseRed.withOpacity(0.1),
+                    foregroundColor: kExpenseRed,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: kExpenseRed.withOpacity(0.3)),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  "Log Out",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  child: const Text(
+                    "Log Out",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
               ),
-            ),
-            
-          ],
+              // Extra padding for scroll
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    final initials = user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : "A";
+    final initials = _currentUser.firstName.isNotEmpty ? _currentUser.firstName[0].toUpperCase() : "A";
     
     return Column(
       children: [
@@ -175,7 +184,7 @@ class ProfilePage extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          "${user.firstName} ${user.lastName}",
+          "${_currentUser.firstName} ${_currentUser.lastName}",
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -191,7 +200,7 @@ class ProfilePage extends StatelessWidget {
             border: Border.all(color: kBankPrimary.withOpacity(0.3)),
           ),
           child: Text(
-            user.role.replaceAll('-', ' ').toUpperCase(),
+            _currentUser.role.replaceAll('-', ' ').toUpperCase(),
             style: const TextStyle(
               color: kBankPrimary,
               fontSize: 10,
@@ -239,44 +248,6 @@ class ProfilePage extends StatelessWidget {
                   value,
                   style: const TextStyle(color: kTextWhite, fontSize: 14, fontWeight: FontWeight.w500),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusRow(String status) {
-    final isActive = status.toLowerCase() == 'active';
-    final color = isActive ? Colors.lightGreen : kExpenseRed;
-    final icon = isActive ? Icons.check_circle_outline : Icons.cancel_outlined;
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: kTextGrey, size: 20),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Status",
-                  style: TextStyle(color: kTextGrey.withOpacity(0.7), fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(icon, color: color, size: 14),
-                    const SizedBox(width: 6),
-                    Text(
-                      status.toUpperCase(),
-                      style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                )
               ],
             ),
           ),

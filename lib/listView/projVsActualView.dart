@@ -16,6 +16,11 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
   bool _isLoading = true;
   List<ProjectionVsActualReport> _reports = [];
 
+  String safeFixed(double v, {int digits = 1}) {
+    if (!v.isFinite) return "0.0";
+    return v.toStringAsFixed(digits);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -44,7 +49,10 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
       appBar: AppBar(
         backgroundColor: kBankBg,
         elevation: 0,
-        title: const Text("Comparison Analytics", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Comparison Analytics",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kTextGrey),
           onPressed: () => Navigator.pop(context),
@@ -53,28 +61,36 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: kBankPrimary))
           : _reports.isEmpty
-              ? const Center(child: Text("No comparison data available", style: TextStyle(color: kTextGrey)))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: _reports.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) => _buildComparisonCard(_reports[index]),
-                ),
+          ? const Center(
+              child: Text(
+                "No comparison data available",
+                style: TextStyle(color: kTextGrey),
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(20),
+              itemCount: _reports.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (context, index) =>
+                  _buildComparisonCard(_reports[index]),
+            ),
     );
   }
 
   Widget _buildComparisonCard(ProjectionVsActualReport item) {
-    final currency = NumberFormat.compactCurrency(symbol: '₹', decimalDigits: 1, locale: 'en_IN');
-    
     // Calculate Percentages for Progress Bars (Clamp to 0.0 - 1.0)
     double orderProgress = 0.0;
-    if (item.orderProjectionMt > 0) {
-      orderProgress = (item.actualOrderReceivedMt / item.orderProjectionMt).clamp(0.0, 1.0);
+    if (item.orderProjectionMt.isFinite && item.orderProjectionMt > 0) {
+      final ratio = item.actualOrderReceivedMt / item.orderProjectionMt;
+      orderProgress = ratio.isFinite ? ratio.clamp(0.0, 1.0) : 0.0;
     }
 
     double colProgress = 0.0;
     if (item.collectionProjection > 0) {
-      colProgress = (item.actualCollection / item.collectionProjection).clamp(0.0, 1.0);
+      colProgress = (item.actualCollection / item.collectionProjection).clamp(
+        0.0,
+        1.0,
+      );
     }
 
     return Container(
@@ -94,7 +110,11 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
               Expanded(
                 child: Text(
                   item.dealerName,
-                  style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    color: kTextWhite,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -106,7 +126,11 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
                 ),
                 child: Text(
                   item.zone,
-                  style: const TextStyle(color: kTextGrey, fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: kTextGrey,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -116,13 +140,13 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
             DateFormat('dd MMM yyyy').format(item.reportDate),
             style: const TextStyle(color: kTextGrey, fontSize: 12),
           ),
-          
+
           const Divider(color: kBorderColor, height: 30),
 
           // 1. Order Comparison Row
           _buildProgressRow(
             "Orders (MT)",
-            "${item.actualOrderReceivedMt.toStringAsFixed(1)} / ${item.orderProjectionMt.toStringAsFixed(1)}",
+            "${safeFixed(item.actualOrderReceivedMt)} / ${safeFixed(item.orderProjectionMt)}",
             orderProgress,
             Colors.orangeAccent,
           ),
@@ -132,7 +156,7 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
           // 2. Collection Comparison Row
           _buildProgressRow(
             "Collections",
-            "${currency.format(item.actualCollection)} / ${currency.format(item.collectionProjection)}",
+            "${safeFixed(item.actualCollection)} / ${safeFixed(item.collectionProjection)}",
             colProgress,
             kSuccessGreen,
           ),
@@ -141,7 +165,12 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
     );
   }
 
-  Widget _buildProgressRow(String label, String valueLabel, double progress, Color color) {
+  Widget _buildProgressRow(
+    String label,
+    String valueLabel,
+    double progress,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -149,7 +178,14 @@ class _ProjVsActualViewState extends State<ProjVsActualView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(color: kTextGrey, fontSize: 13)),
-            Text(valueLabel, style: const TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(
+              valueLabel,
+              style: const TextStyle(
+                color: kTextWhite,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),

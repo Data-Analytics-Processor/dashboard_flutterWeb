@@ -43,9 +43,9 @@ class _HomePageState extends State<HomePage> {
     // If called via pull-to-refresh, we don't want to show the full screen loader,
     // but if it's the first load, we do.
     if (_collections.isEmpty) {
-        setState(() => _isLoading = true);
+      setState(() => _isLoading = true);
     }
-    
+
     try {
       final results = await Future.wait([
         _api.fetchCollectionReports(limit: 50),
@@ -91,7 +91,10 @@ class _HomePageState extends State<HomePage> {
     });
 
     if (_comparisons.isNotEmpty) {
-      final totalPercent = _comparisons.fold(0.0, (sum, item) => sum + item.percent);
+      final totalPercent = _comparisons.fold(
+        0.0,
+        (sum, item) => sum + item.percent,
+      );
       _avgAchievementPercent = totalPercent / _comparisons.length;
     }
   }
@@ -130,9 +133,11 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: _fetchData,
-              style: ElevatedButton.styleFrom(backgroundColor: kBankSurfaceLight),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBankSurfaceLight,
+              ),
               child: const Text("Retry", style: TextStyle(color: kTextWhite)),
-            )
+            ),
           ],
         ),
       );
@@ -145,7 +150,8 @@ class _HomePageState extends State<HomePage> {
         color: kBankPrimary,
         backgroundColor: kBankSurface,
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(), // Ensures pull-to-refresh works even if content is short
+          physics:
+              const AlwaysScrollableScrollPhysics(), // Ensures pull-to-refresh works even if content is short
           padding: EdgeInsets.all(isMobile ? 20 : 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +168,7 @@ class _HomePageState extends State<HomePage> {
                           "JUD-JSB Admin Overview",
                           style: TextStyle(
                             color: kTextWhite,
-                            fontSize: 26, 
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
                           ),
@@ -177,7 +183,11 @@ class _HomePageState extends State<HomePage> {
                       shape: BoxShape.circle,
                       border: Border.all(color: kBorderColor.withOpacity(0.5)),
                     ),
-                    child: const Icon(Icons.notifications_outlined, color: kTextWhite, size: 22),
+                    child: const Icon(
+                      Icons.notifications_outlined,
+                      color: kTextWhite,
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
@@ -193,7 +203,9 @@ class _HomePageState extends State<HomePage> {
                   subtitle: "Realized Revenue (Last 50)",
                   color1: const Color(0xFF4361EE), // Royal Blue
                   color2: const Color(0xFF3A0CA3), // Deep Blue
-                  chart: _buildSparkline(_collections.map((e) => e.amount).toList()),
+                  chart: _buildSparkline(
+                    _collections.map((e) => e.amount).toList(),
+                  ),
                 ),
               ),
 
@@ -205,12 +217,18 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(24),
                 child: _buildBigCard(
                   title: "TOTAL PROJECTIONS",
-                  value: safeCurrency(currencyCompact, _totalCollectionProjection),
+                  value: safeCurrency(
+                    currencyCompact,
+                    _totalCollectionProjection,
+                  ),
                   subtitle: "Projected Collections (Last 50)",
                   color1: const Color(0xFF7209B7), // Purple
                   color2: const Color(0xFFB5179E), // Magenta
-                  chart: _buildSparkline(_projections.map((e) => e.collectionAmount ?? 0).toList()),
-                  extraValue: "${safeIntLabel(_totalOrderProjection)} MT Orders",
+                  chart: _buildSparkline(
+                    _projections.map((e) => e.collectionAmount ?? 0).toList(),
+                  ),
+                  extraValue:
+                      "${safeIntLabel(_totalOrderProjection)} MT Orders",
                 ),
               ),
 
@@ -221,7 +239,9 @@ class _HomePageState extends State<HomePage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProjVsActualView()),
+                    MaterialPageRoute(
+                      builder: (context) => const ProjVsActualView(),
+                    ),
                   );
                 },
                 borderRadius: BorderRadius.circular(24),
@@ -231,11 +251,15 @@ class _HomePageState extends State<HomePage> {
                   subtitle: "Avg. Target Achievement",
                   color1: const Color(0xFF00B4D8), // Cyan
                   color2: const Color(0xFF0077B6), // Ocean Blue
-                  chart: _buildSparkline(_comparisons.map((e) => e.percent).toList()),
+                  chart: _buildSparkline(
+                    _comparisons
+                        .map((e) => e.percent.isFinite ? e.percent : 0.0)
+                        .toList(),
+                  ),
                   extraValue: "View Report >",
                 ),
               ),
-              
+
               // Extra space at bottom for scrolling nicely
               const SizedBox(height: 40),
             ],
@@ -280,39 +304,66 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   title,
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white70,
+                size: 14,
+              ),
             ],
           ),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.bold, letterSpacing: -1),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -1,
+            ),
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              ),
               if (extraValue != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     extraValue,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
             ],
@@ -341,7 +392,11 @@ class _HomePageState extends State<HomePage> {
     final double safeMinY = range == 0 ? minY - 1 : minY;
     final double safeMaxY = range == 0 ? maxY + 1 : maxY;
 
-    final spots = recent.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList();
+    final spots = recent
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value))
+        .toList();
 
     return LineChart(
       LineChartData(
@@ -362,7 +417,10 @@ class _HomePageState extends State<HomePage> {
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.0)],
+                colors: [
+                  Colors.white.withOpacity(0.2),
+                  Colors.white.withOpacity(0.0),
+                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
