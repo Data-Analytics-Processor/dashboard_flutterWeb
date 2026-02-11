@@ -235,30 +235,30 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 20),
 
               // --- 4. CARD 3: COMPARISON ---
-              InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProjVsActualView(),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(24),
-                child: _buildBigCard(
-                  title: "COMPARISON ANALYTICS",
-                  value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
-                  subtitle: "Avg. Target Achievement",
-                  color1: const Color(0xFF00B4D8), // Cyan
-                  color2: const Color(0xFF0077B6), // Ocean Blue
-                  chart: _buildSparkline(
-                    _comparisons
-                        .map((e) => e.percent.isFinite ? e.percent : 0.0)
-                        .toList(),
-                  ),
-                  extraValue: "View Report >",
-                ),
-              ),
+              // InkWell(
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //         builder: (context) => const ProjVsActualView(),
+              //       ),
+              //     );
+              //   },
+              //   borderRadius: BorderRadius.circular(24),
+              //   child: _buildBigCard(
+              //     title: "COMPARISON ANALYTICS",
+              //     value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
+              //     subtitle: "Avg. Target Achievement",
+              //     color1: const Color(0xFF00B4D8), // Cyan
+              //     color2: const Color(0xFF0077B6), // Ocean Blue
+              //     chart: _buildSparkline(
+              //       _comparisons
+              //           .map((e) => e.percent.isFinite ? e.percent : 0.0)
+              //           .toList(),
+              //     ),
+              //     extraValue: "View Report >",
+              //   ),
+              // ),
 
               // Extra space at bottom for scrolling nicely
               const SizedBox(height: 40),
