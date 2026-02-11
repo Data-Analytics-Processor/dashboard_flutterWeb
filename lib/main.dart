@@ -21,7 +21,7 @@ class AnalyticsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Nova Dashboard',
+      title: 'JUD-JSB Admin Dashboard',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: kBankBg,

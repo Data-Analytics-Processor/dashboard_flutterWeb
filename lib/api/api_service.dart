@@ -12,7 +12,8 @@ class ApiService {
   static const String _prodUrl = "https://backend-py-edco.onrender.com/"; // Chat GPT - Data Analysis backend
 
   //static const String _mycocoBaseUrl = "http://13.234.76.191"; // aws - mycoco backend for reports api
-  static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
+  static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
+  //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
 
   // CHAT GPT --- DATA ANALYTICS ENDPOINTS
   // Auto-switch logic for Data Analytics URL

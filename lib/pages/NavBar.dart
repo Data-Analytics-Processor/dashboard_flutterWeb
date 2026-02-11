@@ -47,8 +47,8 @@ class SideNavBar extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("NOVA", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
-                  Text("INTELLIGENCE", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                  Text("Admin", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
+                  Text("Dashboard", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                 ],
               )
             ],
