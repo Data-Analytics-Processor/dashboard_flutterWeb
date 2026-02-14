@@ -37,12 +37,7 @@ class _InsightsPageState extends State<InsightsPage>
   late TabController _mainTabController;
   late TabController _groupTabController;
 
-  final List<String> _groupTabs = [
-    "Dealer Wise",
-    "Zone Wise",
-    "District Wise",
-    "User Wise",
-  ];
+  final List<String> _groupTabs = ["Dealer Wise", "Zone Wise", "District Wise"];
 
   double safe(double v) => v.isFinite ? v : 0;
 
@@ -120,9 +115,7 @@ class _InsightsPageState extends State<InsightsPage>
           key = c.zone ?? "No Zone";
         } else if (criterion == "District Wise") {
           key = c.district ?? "No District";
-        } else if (criterion == "User Wise") {
-          key = c.salesPromoterName ?? "Unknown User";
-        }
+        } 
       } else if (tabIndex == 1) {
         // PROJECTIONS
         final p = item as ProjectionReport;
@@ -132,9 +125,7 @@ class _InsightsPageState extends State<InsightsPage>
           key = p.zone;
         } else if (criterion == "District Wise") {
           key = "N/A";
-        } else if (criterion == "User Wise") {
-          key = "User ${p.salesPromoterUserId ?? 'N/A'}";
-        }
+        } 
       } else {
         // OUTSTANDING
         final o = item as OutstandingReport;
@@ -144,9 +135,7 @@ class _InsightsPageState extends State<InsightsPage>
           key = o.zone ?? "No Zone";
         } else if (criterion == "District Wise") {
           key = "N/A";
-        } else if (criterion == "User Wise") {
-          key = "N/A";
-        }
+        } 
       }
 
       // Filter logic applied here
@@ -455,13 +444,13 @@ class _InsightsPageState extends State<InsightsPage>
                     onLongPress: () {
                       HapticFeedback.heavyImpact();
 
-                      if (currentTab == "Dealer Wise") {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
                           builder: (context) => AiQuickInsightsSheet(
-                            dealerName: key,
+                            entityName: key,
+                            entityType: currentTab, // Passes "Zone Wise", etc.
                             collections: tabIndex == 0
                                 ? items.cast<CollectionReport>()
                                 : [],
@@ -471,21 +460,9 @@ class _InsightsPageState extends State<InsightsPage>
                             outstanding: tabIndex == 2
                                 ? items.cast<OutstandingReport>()
                                 : [],
-                            
-                            // Contnue to AI Chat Page trigger
                             onOpenChat: widget.onOpenChat,
                           ),
                         );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "AI Insights are currently only available in 'Dealer Wise' view.",
-                            ),
-                            backgroundColor: kBankSurfaceLight,
-                          ),
-                        );
-                      }
                     },
                     // --- THE MISSING UI CONTAINER IS RESTORED HERE ---
                     borderRadius: BorderRadius.circular(16),

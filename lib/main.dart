@@ -131,7 +131,7 @@ class _MainLayoutState extends State<MainLayout> {
                 items: const [
                   BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
                   BottomNavigationBarItem(icon: Icon(Icons.insights_rounded), label: 'Insights'),
-                  BottomNavigationBarItem(icon: Icon(Icons.description_rounded), label: 'Reports'),
+                  BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_rounded), label: 'Reports'),
                   BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
                 ],
               ),
