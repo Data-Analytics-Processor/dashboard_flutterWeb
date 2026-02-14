@@ -7,7 +7,7 @@ import 'models/users_model.dart';
 import 'pages/NavBar.dart'; 
 import 'pages/HomePage.dart';
 import 'pages/InsightsPage.dart';
-import 'pages/SavedAnalyticsPage.dart';
+import 'pages/AIAnalyticsPage.dart';
 import 'pages/LoginPage.dart';
 import 'pages/ProfilePage.dart';
 
@@ -73,6 +73,8 @@ class _MainLayoutState extends State<MainLayout> {
   int _insightsInitialTab = 0;
   User? _currentUser;
 
+  final ValueNotifier<String?> _aiContextBridge = ValueNotifier(null);
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -90,10 +92,19 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
+  // --- CONTEXT NAVIGATION HANDLER ---
+  void _jumpToAiChat(String initialContext) {
+    _aiContextBridge.value = initialContext; // Send the text
+    switchTab(2); // Jump to 3rd tab
+  }
+
   List<Widget> get _pages => [
     HomePage(onNavigate: switchTab), 
-    InsightsPage(initialTabIndex: _insightsInitialTab), 
-    const SavedAnalyticsPage(),
+    InsightsPage(
+      initialTabIndex: _insightsInitialTab, 
+      onOpenChat: _jumpToAiChat, // Pass the handler here
+    ), 
+    AIAnalyticsPage(contextBridge: _aiContextBridge), // Pass the bridge here
     ProfilePage(user: _currentUser!),
   ];
 

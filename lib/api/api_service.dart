@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import 'package:flutter/foundation.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
 import '../models/projectionVsActualReports_model.dart';
@@ -10,19 +9,20 @@ import '../models/outstandingReports_model.dart';
 import '../models/verifiedDealers_model.dart';
 
 class ApiService {
-  static const String _localUrl =
-      "http://localhost:5000"; // Chat GPT - Data Analysis backend
-  static const String _prodUrl =
-      "https://backend-py-edco.onrender.com/"; // Chat GPT - Data Analysis backend
+  //static const String _baseUrl = "http://10.0.2.2:5000"; // Chat GPT - Data Analysis backend
+  static const String _baseUrl = "https://backend-py-edco.onrender.com"; // Chat GPT - Data Analysis backend
 
   //static const String _mycocoBaseUrl = "http://13.234.76.191"; // aws - mycoco backend for reports api
   //static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
-  static const String _mycocoBaseUrl =
-      "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
+  static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
 
+  // Shared instance for sharing sessionId across all pages
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
+  // ----------------------------------------
+  
   // CHAT GPT --- DATA ANALYTICS ENDPOINTS
-  // Auto-switch logic for Data Analytics URL
-  final String _baseUrl = kReleaseMode ? _prodUrl : _localUrl;
 
   final String _sessionId = const Uuid().v4();
   String get sessionId => _sessionId;

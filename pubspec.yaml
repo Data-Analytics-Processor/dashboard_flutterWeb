@@ -30,6 +30,8 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.5.4
   android_id: ^0.5.1
+  flutter_staggered_animations: ^1.1.1
+  flutter_slidable: ^4.0.3
 
 
 dev_dependencies:

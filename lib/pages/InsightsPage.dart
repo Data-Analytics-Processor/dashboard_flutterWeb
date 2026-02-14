@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../api/api_service.dart';
+import 'package:flutter/services.dart'; // For HapticFeedback
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; // For animations
+import '../components/aiQuickInsightsSheet.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
 import '../models/outstandingReports_model.dart';
@@ -10,8 +13,9 @@ import '../listView/dealerDetailsView.dart';
 
 class InsightsPage extends StatefulWidget {
   final int initialTabIndex;
+  final Function(String)? onOpenChat;
 
-  const InsightsPage({super.key, this.initialTabIndex = 0});
+  const InsightsPage({super.key, this.initialTabIndex = 0, this.onOpenChat});
 
   @override
   State<InsightsPage> createState() => _InsightsPageState();
@@ -97,10 +101,7 @@ class _InsightsPageState extends State<InsightsPage>
     }
   }
 
-  Map<String, List<dynamic>> _groupData(
-    int tabIndex,
-    String criterion,
-  ) {
+  Map<String, List<dynamic>> _groupData(int tabIndex, String criterion) {
     Map<String, List<dynamic>> grouped = {};
 
     final List<dynamic> list = tabIndex == 0
@@ -255,7 +256,7 @@ class _InsightsPageState extends State<InsightsPage>
     } else {
       total = _outData.fold(0.0, (s, e) => s + safe(e.pendingAmt));
       title = "Total Outstanding";
-      gradientColors = [Colors.orange.shade700, Colors.deepOrangeAccent,]; 
+      gradientColors = [Colors.orange.shade700, Colors.deepOrangeAccent];
       recordCount = _outData.length;
     }
 
@@ -341,10 +342,32 @@ class _InsightsPageState extends State<InsightsPage>
     final groupedData = _groupData(tabIndex, currentTab);
 
     if (groupedData.isEmpty) {
-      return const Center(
+      // --- POLISHED EMPTY STATE ---
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: Text("No results found.", style: TextStyle(color: kTextGrey)),
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: kBankSurface,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.search_off_rounded,
+                  size: 40,
+                  color: kTextGrey,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "No results found.",
+                style: TextStyle(color: kTextGrey, fontSize: 16),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -354,143 +377,211 @@ class _InsightsPageState extends State<InsightsPage>
       decimalDigits: 0,
     );
 
-    // Sorting by total value
     final sortedKeys = groupedData.keys.toList()
       ..sort((a, b) {
         double getSum(List<dynamic> list) => list.fold(0.0, (s, i) {
           if (tabIndex == 0) return s + (i as CollectionReport).amount;
-          if (tabIndex == 1) return s + ((i as ProjectionReport).collectionAmount ?? 0);
+          if (tabIndex == 1) {
+            return s + ((i as ProjectionReport).collectionAmount ?? 0);
+          }
           return s + ((i as OutstandingReport).pendingAmt);
         });
         return getSum(groupedData[b]!).compareTo(getSum(groupedData[a]!));
       });
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: sortedKeys.length,
-      itemBuilder: (context, index) {
-        final key = sortedKeys[index];
-        final items = groupedData[key]!;
+    // --- STAGGERED ANIMATION LIMITER ---
+    return AnimationLimiter(
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: sortedKeys.length,
+        itemBuilder: (context, index) {
+          final key = sortedKeys[index];
+          final items = groupedData[key]!;
 
-        double total = 0.0;
-        if (tabIndex == 0) {
-          total = items.fold(0.0, (s, i) => s + safe((i as CollectionReport).amount));
-        } else if (tabIndex == 1) {
-          total = items.fold(0.0, (s, i) => s + safe((i as ProjectionReport).collectionAmount ?? 0));
-        } else {
-          total = items.fold(0.0, (s, i) => s + safe((i as OutstandingReport).pendingAmt));
-        }
+          double total = 0.0;
+          if (tabIndex == 0) {
+            total = items.fold(
+              0.0,
+              (s, i) => s + safe((i as CollectionReport).amount),
+            );
+          } else if (tabIndex == 1) {
+            total = items.fold(
+              0.0,
+              (s, i) => s + safe((i as ProjectionReport).collectionAmount ?? 0),
+            );
+          } else {
+            total = items.fold(
+              0.0,
+              (s, i) => s + safe((i as OutstandingReport).pendingAmt),
+            );
+          }
 
-        // Initial for Avatar
-        final initial = key.isNotEmpty ? key[0].toUpperCase() : "?";
+          final initial = key.isNotEmpty ? key[0].toUpperCase() : "?";
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: InkWell(
-            onTap: () {
-              // Only navigate to drill-down if we are in "Dealer Wise" mode
-              if (currentTab == "Dealer Wise") {
-                 Navigator.push(context, MaterialPageRoute(
-                   builder: (context) => DealerDetailsView(
-                     dealerName: key,
-                     collections: tabIndex == 0 ? items.cast<CollectionReport>() : [],
-                     projections: tabIndex == 1 ? items.cast<ProjectionReport>() : [],
-                     outstanding: tabIndex == 2 ? items.cast<OutstandingReport>() : [], // <--- ADD THIS LINE
-                   )
-                 ));
-               }
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: kBankSurface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: kBorderColor.withOpacity(0.5)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Avatar
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: kBankSurfaceLight,
-                    child: Text(
-                      initial,
-                      style: const TextStyle(
-                        color: kBankPrimary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          key,
-                          style: const TextStyle(
-                            color: kTextWhite,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "${items.length} records",
-                          style: const TextStyle(
-                            color: kTextGrey,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Trailing
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        currency.format(total),
-                        style: const TextStyle(
-                          color: kTextWhite,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      // Only show "View >" if drill down is available
-                      if (currentTab == "Dealer Wise")
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
-                          child: Text(
-                            "View >",
-                            style: TextStyle(
-                              color: kBankPrimary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+          // --- ITEM ANIMATION CONFIG ---
+          return AnimationConfiguration.staggeredList(
+            position: index,
+            duration: const Duration(milliseconds: 375),
+            child: SlideAnimation(
+              verticalOffset: 50.0,
+              child: FadeInAnimation(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact(); // Haptic on tap
+                      if (currentTab == "Dealer Wise") {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DealerDetailsView(
+                              dealerName: key,
+                              collections: tabIndex == 0
+                                  ? items.cast<CollectionReport>()
+                                  : [],
+                              projections: tabIndex == 1
+                                  ? items.cast<ProjectionReport>()
+                                  : [],
+                              outstanding: tabIndex == 2
+                                  ? items.cast<OutstandingReport>()
+                                  : [],
                             ),
                           ),
+                        );
+                      }
+                    },
+                    // --- LONG PRESS AI TRIGGER ---
+                    onLongPress: () {
+                      HapticFeedback.heavyImpact();
+
+                      if (currentTab == "Dealer Wise") {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => AiQuickInsightsSheet(
+                            dealerName: key,
+                            collections: tabIndex == 0
+                                ? items.cast<CollectionReport>()
+                                : [],
+                            projections: tabIndex == 1
+                                ? items.cast<ProjectionReport>()
+                                : [],
+                            outstanding: tabIndex == 2
+                                ? items.cast<OutstandingReport>()
+                                : [],
+                            
+                            // Contnue to AI Chat Page trigger
+                            onOpenChat: widget.onOpenChat,
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "AI Insights are currently only available in 'Dealer Wise' view.",
+                            ),
+                            backgroundColor: kBankSurfaceLight,
+                          ),
+                        );
+                      }
+                    },
+                    // --- THE MISSING UI CONTAINER IS RESTORED HERE ---
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: kBankSurface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: kBorderColor.withOpacity(0.5),
                         ),
-                    ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // --- HERO ANIMATION TAG ---
+                          Hero(
+                            tag: 'avatar_$key',
+                            child: CircleAvatar(
+                              radius: 22,
+                              backgroundColor: kBankSurfaceLight,
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  color: kBankPrimary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  key,
+                                  style: const TextStyle(
+                                    color: kTextWhite,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "${items.length} records",
+                                  style: const TextStyle(
+                                    color: kTextGrey,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                currency.format(total),
+                                style: const TextStyle(
+                                  color: kTextWhite,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (currentTab == "Dealer Wise")
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    "View >",
+                                    style: TextStyle(
+                                      color: kBankPrimary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
