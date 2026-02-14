@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../api/api_service.dart';
+import '../components/featureFlags.dart';
 import 'package:flutter/services.dart'; // For HapticFeedback
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; // For animations
 import '../components/aiQuickInsightsSheet.dart';
@@ -443,6 +444,11 @@ class _InsightsPageState extends State<InsightsPage>
                     // --- LONG PRESS AI TRIGGER ---
                     onLongPress: () {
                       HapticFeedback.heavyImpact();
+
+                      // 1. CHECK THE MASTER SWITCH FIRST
+                      if (!FeatureFlags.enableAiAssistant) {
+                        return; 
+                      }
 
                         showModalBottomSheet(
                           context: context,

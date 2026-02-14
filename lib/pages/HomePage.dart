@@ -251,7 +251,7 @@ class _HomePageState extends State<HomePage> {
                   value: safeCurrency(currencyCompact, _totalOutstanding),
                   subtitle: "Pending Balance (Last 50)",
                   color1: Colors.teal, 
-                  color2: Colors.tealAccent,
+                  color2: Colors.lightGreen,
                   chart: _buildSparkline(
                     _outstandings.map((e) => e.pendingAmt).toList(),
                   ),
