@@ -5,10 +5,11 @@ import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../api/api_service.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
+import '../models/outstandingReports_model.dart';
 import '../listView/dealerDetailsView.dart';
 
 class InsightsPage extends StatefulWidget {
-  final int initialTabIndex; 
+  final int initialTabIndex;
 
   const InsightsPage({super.key, this.initialTabIndex = 0});
 
@@ -16,19 +17,21 @@ class InsightsPage extends StatefulWidget {
   State<InsightsPage> createState() => _InsightsPageState();
 }
 
-class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMixin {
+class _InsightsPageState extends State<InsightsPage>
+    with TickerProviderStateMixin {
   final ApiService _api = ApiService();
   bool _isLoading = true;
 
   List<CollectionReport> _colData = [];
   List<ProjectionReport> _projData = [];
-  
+  List<OutstandingReport> _outData = [];
+
   // Search state
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
 
-  late TabController _mainTabController; 
-  late TabController _groupTabController; 
+  late TabController _mainTabController;
+  late TabController _groupTabController;
 
   final List<String> _groupTabs = [
     "Dealer Wise",
@@ -42,13 +45,17 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _mainTabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
+    _mainTabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _groupTabController = TabController(length: _groupTabs.length, vsync: this);
 
     _mainTabController.addListener(() {
       if (_mainTabController.indexIsChanging) setState(() {});
     });
-    
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -69,13 +76,18 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      final cData = await _api.fetchCollectionReports(limit: 100);
-      final pData = await _api.fetchProjectionReports(limit: 100);
-      
+      // Parallel fetching for performance
+      final results = await Future.wait([
+        _api.fetchCollectionReports(limit: 100),
+        _api.fetchProjectionReports(limit: 100),
+        _api.fetchOutstandingReports(limit: 100),
+      ]);
+
       if (mounted) {
         setState(() {
-          _colData = cData;
-          _projData = pData;
+          _colData = results[0] as List<CollectionReport>;
+          _projData = results[1] as List<ProjectionReport>;
+          _outData = results[2] as List<OutstandingReport>;
           _isLoading = false;
         });
       }
@@ -85,28 +97,60 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
     }
   }
 
-  Map<String, List<dynamic>> _groupData(bool isCollection, String criterion) {
+  Map<String, List<dynamic>> _groupData(
+    int tabIndex,
+    String criterion,
+  ) {
     Map<String, List<dynamic>> grouped = {};
-    final list = isCollection ? _colData : _projData;
+
+    final List<dynamic> list = tabIndex == 0
+        ? _colData
+        : (tabIndex == 1 ? _projData : _outData);
 
     for (var item in list) {
       String key = "Unknown";
-      if (isCollection) {
+
+      if (tabIndex == 0) {
+        // COLLECTIONS
         final c = item as CollectionReport;
-        if (criterion == "Dealer Wise") {key = c.partyName;}
-        else if (criterion == "Zone Wise") {key = c.zone ?? "No Zone";}
-        else if (criterion == "District Wise") {key = c.district ?? "No District";}
-        else if (criterion == "User Wise") {key = c.salesPromoterName ?? "Unknown User";}
-      } else {
+        if (criterion == "Dealer Wise") {
+          key = c.partyName;
+        } else if (criterion == "Zone Wise") {
+          key = c.zone ?? "No Zone";
+        } else if (criterion == "District Wise") {
+          key = c.district ?? "No District";
+        } else if (criterion == "User Wise") {
+          key = c.salesPromoterName ?? "Unknown User";
+        }
+      } else if (tabIndex == 1) {
+        // PROJECTIONS
         final p = item as ProjectionReport;
-        if (criterion == "Dealer Wise") {key = p.collectionDealerName ?? p.orderDealerName ?? "Unknown";}
-        else if (criterion == "Zone Wise") {key = p.zone;}
-        else if (criterion == "District Wise") {key = "N/A";}
-        else if (criterion == "User Wise") {key = "User ${p.salesPromoterUserId ?? 'N/A'}";}
+        if (criterion == "Dealer Wise") {
+          key = p.collectionDealerName ?? p.orderDealerName ?? "Unknown";
+        } else if (criterion == "Zone Wise") {
+          key = p.zone;
+        } else if (criterion == "District Wise") {
+          key = "N/A";
+        } else if (criterion == "User Wise") {
+          key = "User ${p.salesPromoterUserId ?? 'N/A'}";
+        }
+      } else {
+        // OUTSTANDING
+        final o = item as OutstandingReport;
+        if (criterion == "Dealer Wise") {
+          key = o.dealerPartyName ?? o.dealerCode ?? "Unknown";
+        } else if (criterion == "Zone Wise") {
+          key = o.zone ?? "No Zone";
+        } else if (criterion == "District Wise") {
+          key = "N/A";
+        } else if (criterion == "User Wise") {
+          key = "N/A";
+        }
       }
-      
+
       // Filter logic applied here
-      if (_searchQuery.isNotEmpty && !key.toLowerCase().contains(_searchQuery)) {
+      if (_searchQuery.isNotEmpty &&
+          !key.toLowerCase().contains(_searchQuery)) {
         continue;
       }
 
@@ -118,108 +162,153 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final isCollection = _mainTabController.index == 0;
+    final int tabIndex = _mainTabController.index;
 
     return Scaffold(
       backgroundColor: kBankBg,
       appBar: AppBar(
         backgroundColor: kBankBg,
         elevation: 0,
-        title: const Text("Analysis Studio", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Analysis Studio",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         bottom: TabBar(
           controller: _mainTabController,
           indicatorColor: kBankPrimary,
           labelColor: kTextWhite,
           unselectedLabelColor: kTextGrey,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-          tabs: const [Tab(text: "COLLECTIONS"), Tab(text: "PROJECTIONS")],
+          tabs: const [
+            Tab(text: "COLLECTIONS"),
+            Tab(text: "PROJECTIONS"),
+            Tab(text: "OUTSTANDING"),
+          ],
         ),
       ),
       body: RefreshIndicator(
         onRefresh: _fetchData,
         color: kBankPrimary,
         backgroundColor: kBankSurface,
-        child: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: kBankPrimary))
-        : SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. KPI & Charts (Only show if not searching to reduce clutter)
-                if (_searchQuery.isEmpty) ...[
-                   _buildAnalysisHeader(isCollection),
-                   const SizedBox(height: 24),
-                ],
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: kBankPrimary),
+              )
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. KPI & Charts (Only show if not searching to reduce clutter)
+                    if (_searchQuery.isEmpty) ...[
+                      _buildAnalysisHeader(tabIndex),
+                      const SizedBox(height: 24),
+                    ],
 
-                // 2. Search Bar
-                _buildSearchBar(),
-                const SizedBox(height: 20),
+                    // 2. Search Bar
+                    _buildSearchBar(),
+                    const SizedBox(height: 20),
 
-                // 3. Sub Tabs (Filters)
-                TabBar(
-                  controller: _groupTabController,
-                  isScrollable: true,
-                  labelColor: kBankPrimary,
-                  unselectedLabelColor: kTextGrey,
-                  indicatorColor: kBankPrimary,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: _groupTabs.map((t) => Tab(text: t)).toList(),
-                  onTap: (index) => setState(() {}),
+                    // 3. Sub Tabs (Filters)
+                    TabBar(
+                      controller: _groupTabController,
+                      isScrollable: true,
+                      labelColor: kBankPrimary,
+                      unselectedLabelColor: kTextGrey,
+                      indicatorColor: kBankPrimary,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      tabs: _groupTabs.map((t) => Tab(text: t)).toList(),
+                      onTap: (index) => setState(() {}),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 4. The Data List
+                    _buildGroupedList(tabIndex),
+                  ],
                 ),
-                const SizedBox(height: 20),
-
-                // 4. The Data List
-                _buildGroupedList(isCollection),
-              ],
-            ),
-          ),
+              ),
       ),
     );
   }
 
-  Widget _buildAnalysisHeader(bool isCollection) {
-    // Simple KPI Summary just to give context before the list
-    double total = isCollection
-  ? _colData.fold(0.0, (s, e) => s + safe(e.amount))
-  : _projData.fold(0.0, (s, e) => s + safe(e.collectionAmount ?? 0));
-      
-    final currency = NumberFormat.compactCurrency(symbol: '₹', locale: 'en_IN', decimalDigits: 1);
-    
+  Widget _buildAnalysisHeader(int tabIndex) {
+    double total = 0.0;
+    String title = "";
+    List<Color> gradientColors = [];
+    int recordCount = 0;
+
+    // Dynamic header logic based on the selected tab
+    if (tabIndex == 0) {
+      total = _colData.fold(0.0, (s, e) => s + safe(e.amount));
+      title = "Total Collected";
+      gradientColors = [kBankPrimary, kBankAccent];
+      recordCount = _colData.length;
+    } else if (tabIndex == 1) {
+      total = _projData.fold(0.0, (s, e) => s + safe(e.collectionAmount ?? 0));
+      title = "Total Projected";
+      gradientColors = [Colors.deepPurple, Colors.purpleAccent];
+      recordCount = _projData.length;
+    } else {
+      total = _outData.fold(0.0, (s, e) => s + safe(e.pendingAmt));
+      title = "Total Outstanding";
+      gradientColors = [Colors.orange.shade700, Colors.deepOrangeAccent,]; 
+      recordCount = _outData.length;
+    }
+
+    final currency = NumberFormat.compactCurrency(
+      symbol: '₹',
+      locale: 'en_IN',
+      decimalDigits: 1,
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isCollection 
-            ? [kBankPrimary, kBankAccent] 
-            : [Colors.deepPurple, Colors.purpleAccent],
+          colors: gradientColors,
           begin: Alignment.topLeft,
-          end: Alignment.bottomRight
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: kBankPrimary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))
-        ]
+          BoxShadow(
+            color: gradientColors.first.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isCollection ? "Total Collected" : "Total Projected",
-            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1),
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-             currency.format(total),
-             style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+            currency.format(total),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            "across ${_colData.length + _projData.length} records",
-             style: const TextStyle(color: Colors.white60, fontSize: 12),
-          )
+            "across $recordCount records",
+            style: const TextStyle(color: Colors.white60, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -247,25 +336,31 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildGroupedList(bool isCollection) {
+  Widget _buildGroupedList(int tabIndex) {
     final currentTab = _groupTabs[_groupTabController.index];
-    final groupedData = _groupData(isCollection, currentTab);
-    
+    final groupedData = _groupData(tabIndex, currentTab);
+
     if (groupedData.isEmpty) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.all(32.0),
-        child: Text("No results found.", style: TextStyle(color: kTextGrey)),
-      ));
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: Text("No results found.", style: TextStyle(color: kTextGrey)),
+        ),
+      );
     }
 
-    final currency = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final currency = NumberFormat.simpleCurrency(
+      locale: 'en_IN',
+      decimalDigits: 0,
+    );
 
     // Sorting by total value
     final sortedKeys = groupedData.keys.toList()
       ..sort((a, b) {
         double getSum(List<dynamic> list) => list.fold(0.0, (s, i) {
-          if (isCollection) return s + (i as CollectionReport).amount;
-          return s + ((i as ProjectionReport).collectionAmount ?? 0);
+          if (tabIndex == 0) return s + (i as CollectionReport).amount;
+          if (tabIndex == 1) return s + ((i as ProjectionReport).collectionAmount ?? 0);
+          return s + ((i as OutstandingReport).pendingAmt);
         });
         return getSum(groupedData[b]!).compareTo(getSum(groupedData[a]!));
       });
@@ -278,10 +373,15 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
         final key = sortedKeys[index];
         final items = groupedData[key]!;
 
-        double total = isCollection
-    ? items.fold(0.0, (s, i) => s + safe((i as CollectionReport).amount))
-    : items.fold(0.0, (s, i) => s + safe((i as ProjectionReport).collectionAmount ?? 0));
-            
+        double total = 0.0;
+        if (tabIndex == 0) {
+          total = items.fold(0.0, (s, i) => s + safe((i as CollectionReport).amount));
+        } else if (tabIndex == 1) {
+          total = items.fold(0.0, (s, i) => s + safe((i as ProjectionReport).collectionAmount ?? 0));
+        } else {
+          total = items.fold(0.0, (s, i) => s + safe((i as OutstandingReport).pendingAmt));
+        }
+
         // Initial for Avatar
         final initial = key.isNotEmpty ? key[0].toUpperCase() : "?";
 
@@ -289,13 +389,14 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
           padding: const EdgeInsets.only(bottom: 12),
           child: InkWell(
             onTap: () {
-               // Only navigate to drill-down if we are in "Dealer Wise" mode
-               if (currentTab == "Dealer Wise") {
+              // Only navigate to drill-down if we are in "Dealer Wise" mode
+              if (currentTab == "Dealer Wise") {
                  Navigator.push(context, MaterialPageRoute(
                    builder: (context) => DealerDetailsView(
                      dealerName: key,
-                     collections: isCollection ? items.cast<CollectionReport>() : [],
-                     projections: !isCollection ? items.cast<ProjectionReport>() : [],
+                     collections: tabIndex == 0 ? items.cast<CollectionReport>() : [],
+                     projections: tabIndex == 1 ? items.cast<ProjectionReport>() : [],
+                     outstanding: tabIndex == 2 ? items.cast<OutstandingReport>() : [], // <--- ADD THIS LINE
                    )
                  ));
                }
@@ -308,8 +409,12 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: kBorderColor.withOpacity(0.5)),
                 boxShadow: [
-                   BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))
-                ]
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -317,35 +422,69 @@ class _InsightsPageState extends State<InsightsPage> with TickerProviderStateMix
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: kBankSurfaceLight,
-                    child: Text(initial, style: const TextStyle(color: kBankPrimary, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: kBankPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   // Content
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(key, style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
+                        Text(
+                          key,
+                          style: const TextStyle(
+                            color: kTextWhite,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 4),
-                        Text("${items.length} records", style: const TextStyle(color: kTextGrey, fontSize: 11)),
+                        Text(
+                          "${items.length} records",
+                          style: const TextStyle(
+                            color: kTextGrey,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  
+
                   // Trailing
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(currency.format(total), style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(
+                        currency.format(total),
+                        style: const TextStyle(
+                          color: kTextWhite,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       // Only show "View >" if drill down is available
                       if (currentTab == "Dealer Wise")
                         const Padding(
                           padding: EdgeInsets.only(top: 4),
-                          child: Text("View >", style: TextStyle(color: kBankPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
-                        )
+                          child: Text(
+                            "View >",
+                            style: TextStyle(
+                              color: kBankPrimary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

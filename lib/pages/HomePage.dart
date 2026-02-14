@@ -6,8 +6,8 @@ import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../api/api_service.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
+import '../models/outstandingReports_model.dart';
 import '../models/projectionVsActualReports_model.dart';
-import '../listView/projVsActualView.dart';
 
 class HomePage extends StatefulWidget {
   final Function(int, {int initialTab}) onNavigate;
@@ -25,13 +25,15 @@ class _HomePageState extends State<HomePage> {
 
   List<CollectionReport> _collections = [];
   List<ProjectionReport> _projections = [];
+  List<OutstandingReport> _outstandings = [];
   List<ProjectionVsActualReport> _comparisons = [];
 
   // Aggregated Stats
   double _totalCollection = 0;
   double _totalOrderProjection = 0;
+  double _totalOutstanding = 0;
   double _totalCollectionProjection = 0;
-  double _avgAchievementPercent = 0;
+  double _avgAchievementPercent = 0.0; // Added missing declaration
 
   @override
   void initState() {
@@ -40,8 +42,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchData() async {
-    // If called via pull-to-refresh, we don't want to show the full screen loader,
-    // but if it's the first load, we do.
     if (_collections.isEmpty) {
       setState(() => _isLoading = true);
     }
@@ -50,6 +50,7 @@ class _HomePageState extends State<HomePage> {
       final results = await Future.wait([
         _api.fetchCollectionReports(limit: 50),
         _api.fetchProjectionReports(limit: 50),
+        _api.fetchOutstandingReports(limit: 50),
         _api.fetchProjectionVsActual(limit: 20),
       ]);
 
@@ -57,7 +58,8 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _collections = results[0] as List<CollectionReport>;
           _projections = results[1] as List<ProjectionReport>;
-          _comparisons = results[2] as List<ProjectionVsActualReport>;
+          _outstandings = results[2] as List<OutstandingReport>; // Fixed bug: was assigning to _projections
+          _comparisons = results[3] as List<ProjectionVsActualReport>;
           _calculateStats();
           _isLoading = false;
           _error = null;
@@ -87,6 +89,12 @@ class _HomePageState extends State<HomePage> {
 
     _totalCollectionProjection = _projections.fold(0.0, (sum, item) {
       final v = item.collectionAmount ?? 0.0;
+      return sum + (v.isFinite ? v : 0.0);
+    });
+
+    // Added missing calculation for outstanding
+    _totalOutstanding = _outstandings.fold(0.0, (sum, item) {
+      final v = item.pendingAmt;
       return sum + (v.isFinite ? v : 0.0);
     });
 
@@ -150,8 +158,7 @@ class _HomePageState extends State<HomePage> {
         color: kBankPrimary,
         backgroundColor: kBankSurface,
         child: SingleChildScrollView(
-          physics:
-              const AlwaysScrollableScrollPhysics(), // Ensures pull-to-refresh works even if content is short
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.all(isMobile ? 20 : 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,17 +241,30 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              // --- 4. CARD 3: COMPARISON ---
-              // InkWell(
-              //   onTap: () {
-              //     Navigator.push(
-              //       context,
-              //       MaterialPageRoute(
-              //         builder: (context) => const ProjVsActualView(),
-              //       ),
-              //     );
-              //   },
-              //   borderRadius: BorderRadius.circular(24),
+              // --- 4. CARD 3: OUTSTANDING ---
+              InkWell(
+                // Routing to index 2 (Outstanding tab) in the InsightsPage
+                onTap: () => widget.onNavigate(1, initialTab: 2),
+                borderRadius: BorderRadius.circular(24),
+                child: _buildBigCard(
+                  title: "TOTAL OUTSTANDING",
+                  value: safeCurrency(currencyCompact, _totalOutstanding),
+                  subtitle: "Pending Balance (Last 50)",
+                  color1: Colors.orange.shade700, 
+                  color2: Colors.deepOrangeAccent,
+                  chart: _buildSparkline(
+                    _outstandings.map((e) => e.pendingAmt).toList(),
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+
+              // --- 5. CARD 4: COMPARISON ANALYTICS --- (will implement later)
+              // Container(
+              //   decoration: BoxDecoration(
+              //     borderRadius: BorderRadius.circular(24),
+              //   ),
               //   child: _buildBigCard(
               //     title: "COMPARISON ANALYTICS",
               //     value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
@@ -256,7 +276,6 @@ class _HomePageState extends State<HomePage> {
               //           .map((e) => e.percent.isFinite ? e.percent : 0.0)
               //           .toList(),
               //     ),
-              //     extraValue: "View Report >",
               //   ),
               // ),
 

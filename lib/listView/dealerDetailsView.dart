@@ -5,17 +5,20 @@ import 'package:intl/intl.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
+import '../models/outstandingReports_model.dart';
 
 class DealerDetailsView extends StatelessWidget {
   final String dealerName;
   final List<CollectionReport> collections;
   final List<ProjectionReport> projections;
+  final List<OutstandingReport> outstanding;
 
   const DealerDetailsView({
     super.key,
     required this.dealerName,
     this.collections = const [],
     this.projections = const [],
+    this.outstanding = const [],
   });
 
   @override
@@ -23,6 +26,7 @@ class DealerDetailsView extends StatelessWidget {
     // --- 1. Aggregation Logic ---
     final double totalCollected = collections.fold(0.0, (s, e) => s + e.amount);
     final double totalProjected = projections.fold(0.0, (s, e) => s + (e.collectionAmount ?? 0));
+    final double totalOutstanding = outstanding.fold(0.0, (s, e) => s + e.pendingAmt);
     
     // Extract Metadata from the first available record (Dealer details shouldn't change per record)
     String zone = "N/A";
@@ -92,11 +96,15 @@ class DealerDetailsView extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard("Total Collections", currency.format(totalCollected), Icons.download_done_rounded, kSuccessGreen),
+                  child: _buildStatCard("Collected", currency.format(totalCollected), Icons.download_done_rounded, kSuccessGreen),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _buildStatCard("Projected", currency.format(totalProjected), Icons.trending_up_rounded, Colors.orangeAccent),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatCard("Outstanding", currency.format(totalOutstanding), Icons.warning_amber_rounded, Colors.redAccent),
                 ),
               ],
             ),

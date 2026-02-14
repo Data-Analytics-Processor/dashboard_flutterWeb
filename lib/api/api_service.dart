@@ -6,14 +6,19 @@ import 'package:flutter/foundation.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
 import '../models/projectionVsActualReports_model.dart';
+import '../models/outstandingReports_model.dart';
+import '../models/verifiedDealers_model.dart';
 
 class ApiService {
-  static const String _localUrl = "http://localhost:5000"; // Chat GPT - Data Analysis backend
-  static const String _prodUrl = "https://backend-py-edco.onrender.com/"; // Chat GPT - Data Analysis backend
+  static const String _localUrl =
+      "http://localhost:5000"; // Chat GPT - Data Analysis backend
+  static const String _prodUrl =
+      "https://backend-py-edco.onrender.com/"; // Chat GPT - Data Analysis backend
 
   //static const String _mycocoBaseUrl = "http://13.234.76.191"; // aws - mycoco backend for reports api
-  static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
-  //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
+  //static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
+  static const String _mycocoBaseUrl =
+      "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
 
   // CHAT GPT --- DATA ANALYTICS ENDPOINTS
   // Auto-switch logic for Data Analytics URL
@@ -87,11 +92,33 @@ class ApiService {
 
   // --------- API endpoints for REPORTS ----------
   Future<List<CollectionReport>> fetchCollectionReports({
-    int limit = 100,
+    int limit = 50,
+    int page = 1,
+    String? institution,
+    String? fromDate,
+    String? toDate,
+    String? dealerId,
+    int? salesPromoterUserId,
+    String? sortBy,
+    String? sortDir,
   }) async {
+    // Build query parameters conditionally
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'page': page.toString(),
+      if (institution != null) 'institution': institution,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+      if (dealerId != null) 'dealerId': dealerId,
+      if (salesPromoterUserId != null)
+        'salesPromoterUserId': salesPromoterUserId.toString(),
+      if (sortBy != null) 'sortBy': sortBy,
+      if (sortDir != null) 'sortDir': sortDir,
+    };
+
     final url = Uri.parse(
-      "$_mycocoBaseUrl/api/collection-reports?limit=$limit",
-    );
+      "$_mycocoBaseUrl/api/collection-reports",
+    ).replace(queryParameters: queryParams);
 
     final res = await http.get(url);
 
@@ -104,6 +131,92 @@ class ApiService {
       }
     }
     throw Exception("Failed to fetch collections: ${res.statusCode}");
+  }
+
+  Future<List<OutstandingReport>> fetchOutstandingReports({
+    int limit = 50,
+    int page = 1,
+    int? verifiedDealerId,
+    String? collectionReportId,
+    String? dvrId,
+    bool? isOverdue,
+    bool? isAccountJsbJud,
+    String? sortBy,
+    String? sortDir,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'page': page.toString(),
+      if (verifiedDealerId != null)
+        'verifiedDealerId': verifiedDealerId.toString(),
+      if (collectionReportId != null) 'collectionReportId': collectionReportId,
+      if (dvrId != null) 'dvrId': dvrId,
+      if (isOverdue != null) 'isOverdue': isOverdue.toString(),
+      if (isAccountJsbJud != null)
+        'isAccountJsbJud': isAccountJsbJud.toString(),
+      if (sortBy != null) 'sortBy': sortBy,
+      if (sortDir != null) 'sortDir': sortDir,
+    };
+
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/outstanding-reports",
+    ).replace(queryParameters: queryParams);
+
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => OutstandingReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch outstanding reports: ${res.statusCode}");
+  }
+
+  Future<List<VerifiedDealer>> fetchVerifiedDealers({
+    int limit = 50,
+    int page = 1,
+    String? zone,
+    String? area,
+    String? dealerCategory,
+    String? dealerCode,
+    bool? isSubdealer,
+    int? userId,
+    String? dealerId,
+    String? sortBy,
+    String? sortDir,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'page': page.toString(),
+      if (zone != null) 'zone': zone,
+      if (area != null) 'area': area,
+      if (dealerCategory != null) 'dealerCategory': dealerCategory,
+      if (dealerCode != null) 'dealerCode': dealerCode,
+      if (isSubdealer != null) 'isSubdealer': isSubdealer.toString(),
+      if (userId != null) 'userId': userId.toString(),
+      if (dealerId != null) 'dealerId': dealerId,
+      if (sortBy != null) 'sortBy': sortBy,
+      if (sortDir != null) 'sortDir': sortDir,
+    };
+
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/verified-dealers",
+    ).replace(queryParameters: queryParams);
+
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => VerifiedDealer.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch verified dealers: ${res.statusCode}");
   }
 
   Future<List<ProjectionVsActualReport>> fetchProjectionVsActual({
