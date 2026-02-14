@@ -8,10 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/users_model.dart'; 
 
 class AuthService {
-  // Replace with your actual server IP
   //static const String _baseUrl = 'http://13.234.76.191'; //aws
-  //static const String _baseUrl = "https://adminappbackend-ocpc.onrender.com"; // render
   static const String _baseUrl = 'http://10.0.2.2:8000'; // localhost 
+  //static const String _baseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
   
   final _storage = const FlutterSecureStorage();
   static const String _kCachedProfileKey = 'admin_user_profile_cache';
