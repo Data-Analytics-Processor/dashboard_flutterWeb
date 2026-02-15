@@ -11,10 +11,13 @@ class CollectionReport {
   final String? salesPromoterName;
   final String? zone;
   final String? district;
-  final String? dealerId;
-  final int? salesPromoterUserId;
+  final String? userName;
+  final String? dealerName; 
   final String? sourceMessageId;
   final String? sourceFileName;
+  final int? salesPromoterUserId;
+  final int? verifiedDealerId;
+  final int? userId;
   final DateTime createdAt;
 
   CollectionReport({
@@ -29,10 +32,13 @@ class CollectionReport {
     this.salesPromoterName,
     this.zone,
     this.district,
-    this.dealerId,
-    this.salesPromoterUserId,
+    this.userName,
+    this.dealerName,
     this.sourceMessageId,
     this.sourceFileName,
+    this.salesPromoterUserId,
+    this.verifiedDealerId,
+    this.userId,
     required this.createdAt,
   });
 
@@ -59,10 +65,21 @@ class CollectionReport {
       salesPromoterName: json['salesPromoterName']?.toString(),
       zone: json['zone']?.toString(),
       district: json['district']?.toString(),
-      dealerId: json['dealerId']?.toString(),
       salesPromoterUserId: json['salesPromoterUserId'] is int 
           ? json['salesPromoterUserId'] 
-          : int.tryParse(json['salesPromoterUserId'].toString()),
+          : int.tryParse(json['salesPromoterUserId']?.toString() ?? ''),
+          
+      verifiedDealerId: json['verifiedDealerId'] is int 
+          ? json['verifiedDealerId'] 
+          : int.tryParse(json['verifiedDealerId']?.toString() ?? ''),
+          
+      userId: json['userId'] is int 
+          ? json['userId'] 
+          : int.tryParse(json['userId']?.toString() ?? ''),
+          
+      userName: json['userName']?.toString(),
+      dealerName: json['dealerName']?.toString(),
+
       sourceMessageId: json['sourceMessageId']?.toString(),
       sourceFileName: json['sourceFileName']?.toString(),
     );

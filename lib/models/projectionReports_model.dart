@@ -8,8 +8,11 @@ class ProjectionReport {
   final double? orderQtyMt;
   final String? collectionDealerName;
   final double? collectionAmount;
-  final String? dealerId;
   final int? salesPromoterUserId;
+  final int? verifiedDealerId;
+  final int? userId;
+  final String? userName;
+  final String? dealerPartyName;
   final String? sourceMessageId;
   final String? sourceFileName;
   final DateTime createdAt;
@@ -23,8 +26,11 @@ class ProjectionReport {
     this.orderQtyMt,
     this.collectionDealerName,
     this.collectionAmount,
-    this.dealerId,
     this.salesPromoterUserId,
+    this.verifiedDealerId,
+    this.userId,
+    this.userName,
+    this.dealerPartyName,
     this.sourceMessageId,
     this.sourceFileName,
     required this.createdAt,
@@ -55,10 +61,20 @@ class ProjectionReport {
           ? double.tryParse(json['collectionAmount'].toString()) 
           : null,
           
-      dealerId: json['dealerId']?.toString(),
       salesPromoterUserId: json['salesPromoterUserId'] is int 
           ? json['salesPromoterUserId'] 
-          : int.tryParse(json['salesPromoterUserId'].toString()),
+          : int.tryParse(json['salesPromoterUserId']?.toString() ?? ''),
+          
+      verifiedDealerId: json['verifiedDealerId'] is int 
+          ? json['verifiedDealerId'] 
+          : int.tryParse(json['verifiedDealerId']?.toString() ?? ''),
+          
+      userId: json['userId'] is int 
+          ? json['userId'] 
+          : int.tryParse(json['userId']?.toString() ?? ''),
+          
+      userName: json['userName']?.toString(),
+      dealerPartyName: json['dealerPartyName']?.toString(),
           
       sourceMessageId: json['sourceMessageId']?.toString(),
       sourceFileName: json['sourceFileName']?.toString(),

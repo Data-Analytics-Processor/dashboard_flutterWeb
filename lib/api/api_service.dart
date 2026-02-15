@@ -12,7 +12,7 @@ class ApiService {
   //static const String _baseUrl = "http://10.0.2.2:5000"; // Chat GPT - Data Analysis backend
   static const String _baseUrl = "https://backend-py-edco.onrender.com"; // Chat GPT - Data Analysis backend
 
-  //static const String _mycocoBaseUrl = "http://13.234.76.191"; // aws - mycoco backend for reports api
+  //static const String _mycocoBaseUrl = "http://65.0.208.126"; // aws - mycoco backend for reports api
   //static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
   static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
   //static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost - mycoco backend for reports api (web-version)
@@ -98,21 +98,21 @@ class ApiService {
     String? institution,
     String? fromDate,
     String? toDate,
-    String? dealerId,
-    int? salesPromoterUserId,
+    int? verifiedDealerId, 
+    int? userId, 
+    int? salesPromoterUserId, 
     String? sortBy,
     String? sortDir,
   }) async {
-    // Build query parameters conditionally
     final queryParams = <String, String>{
       'limit': limit.toString(),
       'page': page.toString(),
       if (institution != null) 'institution': institution,
       if (fromDate != null) 'fromDate': fromDate,
       if (toDate != null) 'toDate': toDate,
-      if (dealerId != null) 'dealerId': dealerId,
-      if (salesPromoterUserId != null)
-        'salesPromoterUserId': salesPromoterUserId.toString(),
+      if (verifiedDealerId != null) 'verifiedDealerId': verifiedDealerId.toString(),
+      if (userId != null) 'userId': userId.toString(),
+      if (salesPromoterUserId != null) 'salesPromoterUserId': salesPromoterUserId.toString(),
       if (sortBy != null) 'sortBy': sortBy,
       if (sortDir != null) 'sortDir': sortDir,
     };
@@ -185,7 +185,7 @@ class ApiService {
     String? dealerCode,
     bool? isSubdealer,
     int? userId,
-    String? dealerId,
+    int? dealerId, 
     String? sortBy,
     String? sortDir,
   }) async {
@@ -198,7 +198,7 @@ class ApiService {
       if (dealerCode != null) 'dealerCode': dealerCode,
       if (isSubdealer != null) 'isSubdealer': isSubdealer.toString(),
       if (userId != null) 'userId': userId.toString(),
-      if (dealerId != null) 'dealerId': dealerId,
+      if (dealerId != null) 'dealerId': dealerId.toString(), 
       if (sortBy != null) 'sortBy': sortBy,
       if (sortDir != null) 'sortDir': sortDir,
     };
@@ -222,10 +222,28 @@ class ApiService {
 
   Future<List<ProjectionVsActualReport>> fetchProjectionVsActual({
     int limit = 100,
+    String? institution,
+    String? zone,
+    String? dealerName,
+    int? verifiedDealerId, 
+    int? userId, 
+    String? fromDate,
+    String? toDate,
   }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      if (institution != null) 'institution': institution,
+      if (zone != null) 'zone': zone,
+      if (dealerName != null) 'dealerName': dealerName,
+      if (verifiedDealerId != null) 'verifiedDealerId': verifiedDealerId.toString(),
+      if (userId != null) 'userId': userId.toString(),
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+
     final url = Uri.parse(
-      "$_mycocoBaseUrl/api/projection-vs-actual?limit=$limit",
-    );
+      "$_mycocoBaseUrl/api/projection-vs-actual",
+    ).replace(queryParameters: queryParams);
 
     final res = await http.get(url);
 
@@ -237,15 +255,34 @@ class ApiService {
             .toList();
       }
     }
-    throw Exception("Failed to fetch projection reports: ${res.statusCode}");
+    throw Exception("Failed to fetch projection vs actual reports: ${res.statusCode}");
   }
 
   Future<List<ProjectionReport>> fetchProjectionReports({
     int limit = 100,
+    String? institution,
+    String? zone,
+    int? verifiedDealerId, 
+    int? userId, 
+    int? salesPromoterUserId, 
+    String? fromDate,
+    String? toDate,
   }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      if (institution != null) 'institution': institution,
+      if (zone != null) 'zone': zone,
+      if (verifiedDealerId != null) 'verifiedDealerId': verifiedDealerId.toString(),
+      if (userId != null) 'userId': userId.toString(),
+      if (salesPromoterUserId != null) 'salesPromoterUserId': salesPromoterUserId.toString(),
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+
     final url = Uri.parse(
-      "$_mycocoBaseUrl/api/projection-reports?limit=$limit",
-    );
+      "$_mycocoBaseUrl/api/projection-reports",
+    ).replace(queryParameters: queryParams);
+
     final res = await http.get(url);
 
     if (res.statusCode == 200) {

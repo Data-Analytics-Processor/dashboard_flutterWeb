@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/users_model.dart'; 
 
 class AuthService {
-  //static const String _baseUrl = 'http://13.234.76.191'; //aws
+  //static const String _baseUrl = 'http://65.0.208.126'; //aws
   static const String _baseUrl = 'http://10.0.2.2:8000'; // localhost 
   //static const String _baseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
   

@@ -61,14 +61,14 @@ class _AiQuickInsightsSheetState extends State<AiQuickInsightsSheet> {
       if (widget.entityType == "Dealer Wise") {
         try {
           String? targetDealerCode;
-          String? targetDealerId;
+          int? targetDealerId;
 
           if (widget.outstanding.isNotEmpty && widget.outstanding.first.dealerCode != null) {
             targetDealerCode = widget.outstanding.first.dealerCode;
-          } else if (widget.collections.isNotEmpty && widget.collections.first.dealerId != null) {
-            targetDealerId = widget.collections.first.dealerId;
-          } else if (widget.projections.isNotEmpty && widget.projections.first.dealerId != null) {
-            targetDealerId = widget.projections.first.dealerId;
+          } else if (widget.collections.isNotEmpty && widget.collections.first.verifiedDealerId != null) {
+            targetDealerId = widget.collections.first.verifiedDealerId;
+          } else if (widget.projections.isNotEmpty && widget.projections.first.verifiedDealerId != null) {
+            targetDealerId = widget.projections.first.verifiedDealerId;
           }
 
           if (targetDealerCode != null || targetDealerId != null) {

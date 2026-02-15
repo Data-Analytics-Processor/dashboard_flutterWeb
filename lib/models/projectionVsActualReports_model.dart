@@ -1,5 +1,4 @@
 // lib/models/projectionVsActualReports_model.dart
-
 class ProjectionVsActualReport {
   final String id;
   final DateTime reportDate;
@@ -19,6 +18,12 @@ class ProjectionVsActualReport {
   final double actualCollection;
   final double shortFall;
   final double percent;
+  
+  // --- Relations & Joined Fields ---
+  final int? verifiedDealerId;
+  final int? userId;
+  final String? userName;
+  final String? verifiedDealerPartyName;
 
   // --- Metadata ---
   final String? sourceMessageId;            
@@ -40,6 +45,10 @@ class ProjectionVsActualReport {
     required this.actualCollection,
     required this.shortFall,
     required this.percent,
+    this.verifiedDealerId,
+    this.userId,
+    this.userName,
+    this.verifiedDealerPartyName,
     this.sourceMessageId,
     this.sourceFileName,
     required this.createdAt,
@@ -77,6 +86,18 @@ class ProjectionVsActualReport {
       shortFall: safeDouble(json['shortFall']),
       percent: safeDouble(json['percent']),
       
+      // Relations & Joined Strings
+      verifiedDealerId: json['verifiedDealerId'] is int 
+          ? json['verifiedDealerId'] 
+          : int.tryParse(json['verifiedDealerId']?.toString() ?? ''),
+          
+      userId: json['userId'] is int 
+          ? json['userId'] 
+          : int.tryParse(json['userId']?.toString() ?? ''),
+          
+      userName: json['userName']?.toString(),
+      verifiedDealerPartyName: json['verifiedDealerPartyName']?.toString(),
+
       // Nullable Metadata
       sourceMessageId: json['sourceMessageId']?.toString(),
       sourceFileName: json['sourceFileName']?.toString(),
