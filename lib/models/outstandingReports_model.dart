@@ -2,6 +2,7 @@
 
 class OutstandingReport {
   final String id;
+  final DateTime? reportDate;
   final double securityDepositAmt;
   final double pendingAmt;
   final double lessThan10Days;
@@ -44,6 +45,7 @@ class OutstandingReport {
     required this.greaterThan90Days,
     required this.isOverdue,
     required this.isAccountJsbJud,
+    this.reportDate,
     this.verifiedDealerId,
     this.collectionReportId,
     this.dvrId,
@@ -66,6 +68,7 @@ class OutstandingReport {
 
     return OutstandingReport(
       id: json['id'] as String? ?? '',
+      reportDate: json['reportDate'] != null ? DateTime.tryParse(json['reportDate']) : null, // Added parser
       securityDepositAmt: parseDouble(json['securityDepositAmt']),
       pendingAmt: parseDouble(json['pendingAmt']),
       lessThan10Days: parseDouble(json['lessThan10Days']),

@@ -144,6 +144,9 @@ class ApiService {
     bool? isAccountJsbJud,
     String? sortBy,
     String? sortDir,
+    String? reportDate, 
+    String? fromDate,   
+    String? toDate,     
   }) async {
     final queryParams = <String, String>{
       'limit': limit.toString(),
@@ -157,6 +160,9 @@ class ApiService {
         'isAccountJsbJud': isAccountJsbJud.toString(),
       if (sortBy != null) 'sortBy': sortBy,
       if (sortDir != null) 'sortDir': sortDir,
+      if (reportDate != null) 'reportDate': reportDate,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
     };
 
     final url = Uri.parse(
