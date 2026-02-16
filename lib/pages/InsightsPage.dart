@@ -31,9 +31,10 @@ class _InsightsPageState extends State<InsightsPage>
   List<ProjectionReport> _projData = [];
   List<OutstandingReport> _outData = [];
 
-  // Search state
+  // Search and Filter state
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
+  String _selectedMonthFilter = 'All Time'; // Default historic data
 
   late TabController _mainTabController;
   late TabController _groupTabController;
@@ -76,11 +77,26 @@ class _InsightsPageState extends State<InsightsPage>
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      // Parallel fetching for performance
+      String? fromDateStr;
+      String? toDateStr;
+      
+      final now = DateTime.now();
+      if (_selectedMonthFilter == 'This Month') {
+        fromDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month, 1));
+        toDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month + 1, 0));
+      } else if (_selectedMonthFilter == 'Last Month') {
+        fromDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month - 1, 1));
+        toDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month, 0));
+      } else if (_selectedMonthFilter == 'Last 3 Months') {
+        fromDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month - 3, 1));
+        toDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month + 1, 0));
+      }
+
+      // Parallel fetching with dates applied
       final results = await Future.wait([
-        _api.fetchCollectionReports(limit: 100),
-        _api.fetchProjectionReports(limit: 100),
-        _api.fetchOutstandingReports(limit: 100),
+        _api.fetchCollectionReports(limit: 5000, fromDate: fromDateStr, toDate: toDateStr),
+        _api.fetchProjectionReports(limit: 5000, fromDate: fromDateStr, toDate: toDateStr),
+        _api.fetchOutstandingReports(limit: 5000, fromDate: fromDateStr, toDate: toDateStr),
       ]);
 
       if (mounted) {
@@ -197,8 +213,14 @@ class _InsightsPageState extends State<InsightsPage>
                       const SizedBox(height: 24),
                     ],
 
-                    // 2. Search Bar
-                    _buildSearchBar(),
+                    // 2. Search Bar & Date Filter Row
+                    Row(
+                      children: [
+                        Expanded(child: _buildSearchBar()),
+                        const SizedBox(width: 12),
+                        _buildMonthFilter(),
+                      ],
+                    ),
                     const SizedBox(height: 20),
 
                     // 3. Sub Tabs (Filters)
@@ -226,6 +248,36 @@ class _InsightsPageState extends State<InsightsPage>
     );
   }
 
+  Widget _buildMonthFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: kBankSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedMonthFilter,
+          dropdownColor: kBankSurface,
+          icon: const Icon(Icons.calendar_month_rounded, color: kBankPrimary, size: 20),
+          style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 13),
+          items: ['All Time', 'This Month', 'Last Month', 'Last 3 Months']
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedMonthFilter = val;
+              });
+              _fetchData();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildAnalysisHeader(int tabIndex) {
     double total = 0.0;
     String title = "";
@@ -246,7 +298,7 @@ class _InsightsPageState extends State<InsightsPage>
     } else {
       total = _outData.fold(0.0, (s, e) => s + safe(e.pendingAmt));
       title = "Total Outstanding";
-      gradientColors = [Colors.orange.shade700, Colors.deepOrangeAccent];
+      gradientColors = [Colors.teal, Colors.lightGreen];
       recordCount = _outData.length;
     }
 
@@ -470,7 +522,6 @@ class _InsightsPageState extends State<InsightsPage>
                           ),
                         );
                     },
-                    // --- THE MISSING UI CONTAINER IS RESTORED HERE ---
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       padding: const EdgeInsets.all(16),

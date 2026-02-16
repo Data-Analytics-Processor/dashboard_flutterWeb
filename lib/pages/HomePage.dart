@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
   double _totalOrderProjection = 0;
   double _totalOutstanding = 0;
   double _totalCollectionProjection = 0;
-  double _avgAchievementPercent = 0.0; // Added missing declaration
+  double _avgAchievementPercent = 0.0;
 
   @override
   void initState() {
@@ -47,18 +47,47 @@ class _HomePageState extends State<HomePage> {
     }
 
     try {
+      // --- DATE FILTERING FOR THIS MONTH ---
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(
+        now.year,
+        now.month + 1,
+        0,
+      ); // Last day of month
+
+      final fromDateStr = DateFormat('yyyy-MM-dd').format(startOfMonth);
+      final toDateStr = DateFormat('yyyy-MM-dd').format(endOfMonth);
+
+      // Increased limit to 5000 to ensure we get the full month's data
       final results = await Future.wait([
-        _api.fetchCollectionReports(limit: 50),
-        _api.fetchProjectionReports(limit: 50),
-        _api.fetchOutstandingReports(limit: 50),
-        _api.fetchProjectionVsActual(limit: 20),
+        _api.fetchCollectionReports(
+          limit: 5000,
+          fromDate: fromDateStr,
+          toDate: toDateStr,
+        ),
+        _api.fetchProjectionReports(
+          limit: 5000,
+          fromDate: fromDateStr,
+          toDate: toDateStr,
+        ),
+        _api.fetchOutstandingReports(
+          limit: 5000,
+          fromDate: fromDateStr,
+          toDate: toDateStr,
+        ),
+        _api.fetchProjectionVsActual(
+          limit: 1000,
+          fromDate: fromDateStr,
+          toDate: toDateStr,
+        ),
       ]);
 
       if (mounted) {
         setState(() {
           _collections = results[0] as List<CollectionReport>;
           _projections = results[1] as List<ProjectionReport>;
-          _outstandings = results[2] as List<OutstandingReport>; // Fixed bug: was assigning to _projections
+          _outstandings = results[2] as List<OutstandingReport>;
           _comparisons = results[3] as List<ProjectionVsActualReport>;
           _calculateStats();
           _isLoading = false;
@@ -92,7 +121,6 @@ class _HomePageState extends State<HomePage> {
       return sum + (v.isFinite ? v : 0.0);
     });
 
-    // Added missing calculation for outstanding
     _totalOutstanding = _outstandings.fold(0.0, (sum, item) {
       final v = item.pendingAmt;
       return sum + (v.isFinite ? v : 0.0);
@@ -207,7 +235,7 @@ class _HomePageState extends State<HomePage> {
                 child: _buildBigCard(
                   title: "TOTAL COLLECTIONS",
                   value: safeCurrency(currencyCompact, _totalCollection),
-                  subtitle: "Realized Revenue (Last 50)",
+                  subtitle: "Realized Revenue (This Month)",
                   color1: const Color(0xFF4361EE), // Royal Blue
                   color2: const Color(0xFF3A0CA3), // Deep Blue
                   chart: _buildSparkline(
@@ -228,7 +256,7 @@ class _HomePageState extends State<HomePage> {
                     currencyCompact,
                     _totalCollectionProjection,
                   ),
-                  subtitle: "Projected Collections (Last 50)",
+                  subtitle: "Projected Collections (This Month)",
                   color1: const Color(0xFF7209B7), // Purple
                   color2: const Color(0xFFB5179E), // Magenta
                   chart: _buildSparkline(
@@ -243,43 +271,20 @@ class _HomePageState extends State<HomePage> {
 
               // --- 4. CARD 3: OUTSTANDING ---
               InkWell(
-                // Routing to index 2 (Outstanding tab) in the InsightsPage
                 onTap: () => widget.onNavigate(1, initialTab: 2),
                 borderRadius: BorderRadius.circular(24),
                 child: _buildBigCard(
                   title: "TOTAL OUTSTANDING",
                   value: safeCurrency(currencyCompact, _totalOutstanding),
-                  subtitle: "Pending Balance (Last 50)",
-                  color1: Colors.teal, 
+                  subtitle: "Pending Balance (This Month)",
+                  color1: Colors.teal,
                   color2: Colors.lightGreen,
                   chart: _buildSparkline(
                     _outstandings.map((e) => e.pendingAmt).toList(),
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 20),
 
-              // --- 5. CARD 4: COMPARISON ANALYTICS --- (will implement later)
-              // Container(
-              //   decoration: BoxDecoration(
-              //     borderRadius: BorderRadius.circular(24),
-              //   ),
-              //   child: _buildBigCard(
-              //     title: "COMPARISON ANALYTICS",
-              //     value: "${_avgAchievementPercent.toStringAsFixed(1)}%",
-              //     subtitle: "Avg. Target Achievement",
-              //     color1: const Color(0xFF00B4D8), // Cyan
-              //     color2: const Color(0xFF0077B6), // Ocean Blue
-              //     chart: _buildSparkline(
-              //       _comparisons
-              //           .map((e) => e.percent.isFinite ? e.percent : 0.0)
-              //           .toList(),
-              //     ),
-              //   ),
-              // ),
-
-              // Extra space at bottom for scrolling nicely
               const SizedBox(height: 40),
             ],
           ),
@@ -297,6 +302,8 @@ class _HomePageState extends State<HomePage> {
     required Widget chart,
     String? extraValue,
   }) {
+    final isMobile = MediaQuery.of(context).size.width < 400;
+
     return Container(
       height: 220,
       width: double.infinity,
@@ -319,6 +326,7 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// --- TOP ROW (TITLE + ARROW) ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -348,47 +356,68 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
+
           const Spacer(),
+
+          /// --- BIG VALUE ---
           Text(
             value,
-            style: const TextStyle(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 38,
+              fontSize: isMobile ? 34 : 38,
               fontWeight: FontWeight.bold,
               letterSpacing: -1,
             ),
           ),
+
           const SizedBox(height: 4),
+
+          /// --- SUBTITLE + EXTRA VALUE (OVERFLOW SAFE) ---
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+              Expanded(
+                child: Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ),
-              if (extraValue != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    extraValue,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+
+              if (extraValue != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      extraValue,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
+              ],
             ],
           ),
+
           const SizedBox(height: 16),
-          SizedBox(height: 40, child: chart),
+
+          /// --- SPARKLINE ---
+          SizedBox(height: 40, width: double.infinity, child: chart),
         ],
       ),
     );
@@ -398,7 +427,6 @@ class _HomePageState extends State<HomePage> {
     if (values.isEmpty) return const SizedBox();
 
     final safeValues = values.map((v) => v.isFinite ? v : 0.0).toList();
-    // Take last 15 points for a smoother sparkline in card
     final recent = safeValues.take(15).toList().reversed.toList();
 
     if (recent.isEmpty) return const SizedBox();
@@ -406,7 +434,6 @@ class _HomePageState extends State<HomePage> {
     final minY = recent.reduce((a, b) => a < b ? a : b);
     final maxY = recent.reduce((a, b) => a > b ? a : b);
 
-    // Prevent chart crash if flat line
     final double range = maxY - minY;
     final double safeMinY = range == 0 ? minY - 1 : minY;
     final double safeMaxY = range == 0 ? maxY + 1 : maxY;

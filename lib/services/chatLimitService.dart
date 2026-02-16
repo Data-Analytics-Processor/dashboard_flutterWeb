@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../components/featureFlags.dart';
 
 class ChatLimitService {
-  static const int dailyLimit = 5;
+  static const int dailyLimit = 50;
   static const String _dateKey = 'ai_chat_date';
   static const String _countKey = 'ai_chat_count';
 
