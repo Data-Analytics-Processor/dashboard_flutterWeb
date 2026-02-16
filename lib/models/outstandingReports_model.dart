@@ -23,9 +23,12 @@ class OutstandingReport {
   final String? dvrId;
 
   // Joined Context Data
-  final String? dealerPartyName;
-  final String? dealerCode;
+  final String? dealerPartyName; // From Verified Dealer Table
+  final String? dealerCode;      // From Verified Dealer Table
   final String? zone;
+  
+  // 🔥 NEW: Raw Name Fallback (For unmatched rows like "Tripura")
+  final String? tempDealerName; 
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -52,6 +55,7 @@ class OutstandingReport {
     this.dealerPartyName,
     this.dealerCode,
     this.zone,
+    this.tempDealerName, // Added to constructor
     this.createdAt,
     this.updatedAt,
   });
@@ -68,7 +72,7 @@ class OutstandingReport {
 
     return OutstandingReport(
       id: json['id'] as String? ?? '',
-      reportDate: json['reportDate'] != null ? DateTime.tryParse(json['reportDate']) : null, // Added parser
+      reportDate: json['reportDate'] != null ? DateTime.tryParse(json['reportDate']) : null,
       securityDepositAmt: parseDouble(json['securityDepositAmt']),
       pendingAmt: parseDouble(json['pendingAmt']),
       lessThan10Days: parseDouble(json['lessThan10Days']),
@@ -82,12 +86,18 @@ class OutstandingReport {
       greaterThan90Days: parseDouble(json['greaterThan90Days']),
       isOverdue: json['isOverdue'] as bool? ?? false,
       isAccountJsbJud: json['isAccountJsbJud'] as bool? ?? false,
+      
       verifiedDealerId: json['verifiedDealerId'] as int?,
       collectionReportId: json['collectionReportId'] as String?,
       dvrId: json['dvrId'] as String?,
+      
       dealerPartyName: json['dealerPartyName'] as String?,
       dealerCode: json['dealerCode'] as String?,
       zone: json['zone'] as String?,
+      
+      // 🔥 Match this key to whatever your API sends (e.g., 'temp_dealer_name' or 'tempDealerName')
+      tempDealerName: json['tempDealerName'] as String? ?? json['temp_dealer_name'] as String?, 
+
       createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
       updatedAt: json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null,
     );
