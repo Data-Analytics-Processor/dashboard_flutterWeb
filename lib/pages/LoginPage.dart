@@ -1,8 +1,8 @@
 // lib/pages/LoginPage.dart
-import 'dart:io';
+//import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:android_id/android_id.dart';
+//import 'package:device_info_plus/device_info_plus.dart';
+//import 'package:android_id/android_id.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart'; // Import constants
 import '../models/users_model.dart';
 import '../api/auth_service.dart';
@@ -33,19 +33,19 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color _bgDark = kBankBg; // Use dark bg
   static const Color _surfaceDark = kBankSurface; // Use dark surface
 
-  Future<String> _getUniqueDeviceId() async {
-    try {
-      if (Platform.isAndroid) {
-        const androidIdPlugin = AndroidId();
-        return await androidIdPlugin.getId() ?? "unknown_android_id";
-      } else if (Platform.isIOS) {
-        var deviceInfo = DeviceInfoPlugin();
-        var iosInfo = await deviceInfo.iosInfo;
-        return iosInfo.identifierForVendor ?? "unknown_ios_id";
-      }
-    } catch (_) {}
-    return "unknown_device";
-  }
+  // Future<String> _getUniqueDeviceId() async {
+  //   try {
+  //     if (Platform.isAndroid) {
+  //       const androidIdPlugin = AndroidId();
+  //       return await androidIdPlugin.getId() ?? "unknown_android_id";
+  //     } else if (Platform.isIOS) {
+  //       var deviceInfo = DeviceInfoPlugin();
+  //       var iosInfo = await deviceInfo.iosInfo;
+  //       return iosInfo.identifierForVendor ?? "unknown_ios_id";
+  //     }
+  //   } catch (_) {}
+  //   return "unknown_device";
+  // }
 
   Future<void> _handleLogin() async {
     FocusScope.of(context).unfocus();
@@ -70,14 +70,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final deviceId = await _getUniqueDeviceId();
+      //final deviceId = await _getUniqueDeviceId();
       // String? fcmToken = await NotificationService().getFcmToken();
       String? fcmToken; // Placeholder until you integrate FCM
 
       User user = await AuthService().login(
         loginId,
         password,
-        deviceId,
+        //deviceId,
         fcmToken,
       );
 
