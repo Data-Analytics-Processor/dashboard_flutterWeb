@@ -81,7 +81,17 @@ class _InsightsPageState extends State<InsightsPage>
       String? toDateStr;
       
       final now = DateTime.now();
-      if (_selectedMonthFilter == 'This Month') {
+      // --- UPDATED DATE FILTER LOGIC ---
+      if (_selectedMonthFilter == 'Last 24 Hours') {
+        fromDateStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(hours: 24)));
+        toDateStr = DateFormat('yyyy-MM-dd').format(now);
+      } else if (_selectedMonthFilter == 'Last 48 Hours') {
+        fromDateStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(hours: 48)));
+        toDateStr = DateFormat('yyyy-MM-dd').format(now);
+      } else if (_selectedMonthFilter == 'Last 7 Days') {
+        fromDateStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 7)));
+        toDateStr = DateFormat('yyyy-MM-dd').format(now);
+      } else if (_selectedMonthFilter == 'This Month') {
         fromDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month, 1));
         toDateStr = DateFormat('yyyy-MM-dd').format(DateTime(now.year, now.month + 1, 0));
       } else if (_selectedMonthFilter == 'Last Month') {
@@ -94,9 +104,9 @@ class _InsightsPageState extends State<InsightsPage>
 
       // Parallel fetching with dates applied
       final results = await Future.wait([
-        _api.fetchCollectionReports(limit: 5000, fromDate: fromDateStr, toDate: toDateStr),
-        _api.fetchProjectionReports(limit: 5000, fromDate: fromDateStr, toDate: toDateStr),
-        _api.fetchOutstandingReports(limit: 5000, fromDate: fromDateStr, toDate: toDateStr),
+        _api.fetchCollectionReports(limit: 10000, fromDate: fromDateStr, toDate: toDateStr),
+        _api.fetchProjectionReports(limit: 10000, fromDate: fromDateStr, toDate: toDateStr),
+        _api.fetchOutstandingReports(limit: 10000, fromDate: fromDateStr, toDate: toDateStr),
       ]);
 
       if (mounted) {
@@ -262,9 +272,15 @@ class _InsightsPageState extends State<InsightsPage>
           dropdownColor: kBankSurface,
           icon: const Icon(Icons.calendar_month_rounded, color: kBankPrimary, size: 20),
           style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 13),
-          items: ['All Time', 'This Month', 'Last Month', 'Last 3 Months']
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
+          items: [
+            'All Time', 
+            'Last 24 Hours', 
+            'Last 48 Hours', 
+            'Last 7 Days', 
+            'This Month', 
+            'Last Month', 
+            'Last 3 Months'
+          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: (val) {
             if (val != null) {
               setState(() {
@@ -472,7 +488,6 @@ class _InsightsPageState extends State<InsightsPage>
                   padding: const EdgeInsets.only(bottom: 12),
                   child: InkWell(
                     onTap: () {
-                      HapticFeedback.lightImpact(); // Haptic on tap
                       if (currentTab == "Dealer Wise") {
                         Navigator.push(
                           context,
@@ -495,7 +510,7 @@ class _InsightsPageState extends State<InsightsPage>
                     },
                     // --- LONG PRESS AI TRIGGER ---
                     onLongPress: () {
-                      HapticFeedback.heavyImpact();
+                      HapticFeedback.mediumImpact();
 
                       // 1. CHECK THE MASTER SWITCH FIRST
                       if (!FeatureFlags.enableAiAssistant) {

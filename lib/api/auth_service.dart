@@ -2,31 +2,47 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../models/users_model.dart'; 
 
 class AuthService {
-  //static const String _baseUrl = 'http://65.0.208.126'; //aws
-  static const String _baseUrl = 'http://10.0.2.2:8000'; // localhost 
+  static const String _baseUrl = 'http://65.0.208.126'; //aws
+  //static const String _baseUrl = 'http://10.0.2.2:8000'; // localhost 
   //static const String _baseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
   
-  final _storage = const FlutterSecureStorage();
+  final _secureStorage = const FlutterSecureStorage();
   static const String _kCachedProfileKey = 'admin_user_profile_cache';
+  static const String _kTokenKey = 'jwt_token';
 
+  // --- CROSS PLATFORM TOKEN STORAGE ---
   Future<void> _saveToken(String token) async {
-    await _storage.write(key: 'jwt_token', value: token);
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kTokenKey, token);
+    } else {
+      await _secureStorage.write(key: _kTokenKey, value: token);
+    }
   }
 
   Future<String?> getToken() async {
-    return await _storage.read(key: 'jwt_token');
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_kTokenKey);
+    } else {
+      return await _secureStorage.read(key: _kTokenKey);
+    }
   }
 
   Future<void> logout() async {
-    await _storage.deleteAll();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.clear(); // Clears cached profile and web token
+    
+    if (!kIsWeb) {
+      await _secureStorage.deleteAll(); // Clears mobile tokens
+    }
   }
 
   // --- ADMIN LOGIN ---

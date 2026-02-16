@@ -62,22 +62,22 @@ class _HomePageState extends State<HomePage> {
       // Increased limit to 5000 to ensure we get the full month's data
       final results = await Future.wait([
         _api.fetchCollectionReports(
-          limit: 5000,
+          limit: 10000,
           fromDate: fromDateStr,
           toDate: toDateStr,
         ),
         _api.fetchProjectionReports(
-          limit: 5000,
+          limit: 10000,
           fromDate: fromDateStr,
           toDate: toDateStr,
         ),
         _api.fetchOutstandingReports(
-          limit: 5000,
+          limit: 10000,
           fromDate: fromDateStr,
           toDate: toDateStr,
         ),
         _api.fetchProjectionVsActual(
-          limit: 1000,
+          limit: 10000,
           fromDate: fromDateStr,
           toDate: toDateStr,
         ),

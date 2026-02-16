@@ -110,11 +110,12 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // <--- CHANGED: Safety check for null user
+    // Safety check for null user
     if (_currentUser == null) {
-      // If no user data (e.g. hot restart), go back to login or show loader
-      // For dev purposes, a loader prevents the crash:
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: kBankPrimary)));
     }
 
     final isMobile = Responsive.isMobile(context);
