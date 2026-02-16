@@ -50,16 +50,19 @@ class _HomePageState extends State<HomePage> {
       // --- DATE FILTERING FOR THIS MONTH ---
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
+      
+      // 🔥 FIX: Ensure we capture the full last day by setting time to 23:59:59
       final endOfMonth = DateTime(
         now.year,
         now.month + 1,
         0,
-      ); // Last day of month
+        23, 59, 59 
+      ); 
 
       final fromDateStr = DateFormat('yyyy-MM-dd').format(startOfMonth);
       final toDateStr = DateFormat('yyyy-MM-dd').format(endOfMonth);
 
-      // Increased limit to 5000 to ensure we get the full month's data
+      // Increased limit to 10000 to ensure we get the full month's data
       final results = await Future.wait([
         _api.fetchCollectionReports(
           limit: 10000,

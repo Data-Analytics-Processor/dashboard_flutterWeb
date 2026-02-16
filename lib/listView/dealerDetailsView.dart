@@ -28,27 +28,35 @@ class DealerDetailsView extends StatelessWidget {
     final double totalProjected = projections.fold(0.0, (s, e) => s + (e.collectionAmount ?? 0));
     final double totalOutstanding = outstanding.fold(0.0, (s, e) => s + e.pendingAmt);
     
-    // Extract Metadata from the first available record (Dealer details shouldn't change per record)
+    // --- 2. Extract Metadata (Prioritize: Collections -> Projections -> Outstanding) ---
     String zone = "N/A";
     String district = "N/A";
     String salesPromoter = "N/A";
-    String institution = "N/A"; // JSB/JUD/etc.
+    String institution = "N/A"; // JSB/JUD
     DateTime? lastPaymentDate;
 
     if (collections.isNotEmpty) {
-      // Sort to find latest date
+      // Sort to find latest date (Handle nulls safely)
       collections.sort((a, b) => b.voucherDate.compareTo(a.voucherDate));
       final latest = collections.first;
       
       zone = latest.zone ?? "N/A";
       district = latest.district ?? "N/A";
       salesPromoter = latest.salesPromoterName ?? "N/A";
-      institution = latest.institution;
+      institution = latest.institution ;
       lastPaymentDate = latest.voucherDate;
+    
     } else if (projections.isNotEmpty) {
       final latest = projections.first;
-      zone = latest.zone;
-      institution = latest.institution;
+      zone = latest.zone ;
+      institution = latest.institution ;
+    
+    } else if (outstanding.isNotEmpty) {
+      // 🔥 NEW: Fallback to Outstanding if no other activity found
+      final latest = outstanding.first;
+      zone = latest.zone ?? "N/A";
+      // Outstanding table uses boolean flag, map it to String
+      institution = latest.isAccountJsbJud ? "JSB" : "JUD"; 
     }
 
     final currency = NumberFormat.compactCurrency(symbol: '₹', locale: 'en_IN', decimalDigits: 1);
@@ -87,12 +95,12 @@ class DealerDetailsView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 2. Profile Card ---
+            // --- 3. Profile Card ---
             _buildProfileCard(zone, district, salesPromoter, lastPaymentDate, dateFormatter),
             
             const SizedBox(height: 24),
 
-            // --- 3. Financial Overview (Grid) ---
+            // --- 4. Financial Overview (Grid) ---
             Row(
               children: [
                 Expanded(
@@ -111,7 +119,7 @@ class DealerDetailsView extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // --- 4. Trend Chart ---
+            // --- 5. Trend Chart ---
             if (collections.isNotEmpty) ...[
               const Text("Payment History Trend", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 16),
@@ -129,7 +137,7 @@ class DealerDetailsView extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // --- 5. Recent Transactions List ---
+            // --- 6. Recent Transactions List ---
             const Text("Recent Transactions", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             _buildTransactionList(collections),
@@ -214,7 +222,6 @@ class DealerDetailsView extends StatelessWidget {
     // Group by Date for cleaner chart
     Map<int, double> grouped = {};
     for (var d in data) {
-      // Use epoch day to group
       int day = d.voucherDate.millisecondsSinceEpoch;
       grouped[day] = (grouped[day] ?? 0) + d.amount;
     }
@@ -223,6 +230,11 @@ class DealerDetailsView extends StatelessWidget {
         .map((e) => FlSpot(e.key.toDouble(), e.value))
         .toList()
         ..sort((a,b) => a.x.compareTo(b.x));
+
+    // Handle single data point case to avoid chart crash
+    if (sortedSpots.length == 1) {
+      sortedSpots.add(FlSpot(sortedSpots[0].x + 86400000, sortedSpots[0].y)); // Add dummy point next day
+    }
 
     return LineChart(
       LineChartData(

@@ -147,7 +147,8 @@ class ApiService {
     String? sortDir,
     String? reportDate, 
     String? fromDate,   
-    String? toDate,     
+    String? toDate,
+    String? search,     
   }) async {
     final queryParams = <String, String>{
       'limit': limit.toString(),
@@ -164,6 +165,7 @@ class ApiService {
       if (reportDate != null) 'reportDate': reportDate,
       if (fromDate != null) 'fromDate': fromDate,
       if (toDate != null) 'toDate': toDate,
+      if (search != null) 'search': search,
     };
 
     final url = Uri.parse(

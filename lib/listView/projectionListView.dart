@@ -29,8 +29,16 @@ class ProjectionListView extends StatelessWidget {
       separatorBuilder: (_, __) => const Divider(height: 1, color: kBorderColor),
       itemBuilder: (context, index) {
         final item = projections[index];
-        // Determine primary dealer name (Collection dealer takes precedence if present, else Order dealer)
-        final dealerName = item.collectionDealerName ?? item.orderDealerName ?? "Unknown Dealer";
+
+        // 🔥 FIX: Check for Empty Strings ("") too, not just Null.
+        // Priority: Collection Dealer -> Order Dealer -> Unknown
+        String dealerName = "Unknown Dealer";
+        
+        if (item.collectionDealerName != null && item.collectionDealerName!.trim().isNotEmpty) {
+          dealerName = item.collectionDealerName!;
+        } else if (item.orderDealerName != null && item.orderDealerName!.trim().isNotEmpty) {
+          dealerName = item.orderDealerName!;
+        }
         
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
@@ -63,8 +71,11 @@ class ProjectionListView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // Only show amount if it exists and is greater than 0
               Text(
-                item.collectionAmount != null ? currency.format(item.collectionAmount) : "-",
+                (item.collectionAmount != null && item.collectionAmount! > 0) 
+                    ? currency.format(item.collectionAmount) 
+                    : "-",
                 style: const TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 4),
