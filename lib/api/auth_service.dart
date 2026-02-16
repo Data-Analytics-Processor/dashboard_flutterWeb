@@ -49,7 +49,7 @@ class AuthService {
   Future<User> login(
     String loginId,
     String password,
-    //String deviceId,
+    String deviceId,
     String? fcmToken,
   ) async {
     final url = Uri.parse('$_baseUrl/api/auth/login');
@@ -58,7 +58,7 @@ class AuthService {
     final requestBody = jsonEncode({
       'loginId': loginId.trim(),
       'password': password,
-      //'deviceId': deviceId,
+      'deviceId': null,
       'fcmToken': fcmToken,
     });
 
