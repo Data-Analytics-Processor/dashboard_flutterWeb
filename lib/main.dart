@@ -1,12 +1,15 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // --- IMPORTS ---
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
+import 'package:dashboard_flutter/api/auth_service.dart';
 import 'pages/SideNavBar.dart'; 
 import 'pages/HomePage.dart';
 import 'pages/ChatPage.dart';
 import 'pages/SavedAnalyticsPage.dart';
+import 'pages/LoginPage.dart'; 
 
 void main() {
   runApp(const AnalyticsApp());
@@ -22,7 +25,6 @@ class AnalyticsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: kBankBg,
-        // Manrope is the standard "Fintech" font. If not available, use Inter.
         textTheme: GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme),
         colorScheme: const ColorScheme.dark(
           primary: kBankPrimary,
@@ -30,7 +32,6 @@ class AnalyticsApp extends StatelessWidget {
           background: kBankBg,
           onSurface: kTextWhite,
         ),
-        // --- FIX: Use CardThemeData instead of CardTheme ---
         cardTheme: CardThemeData(
           color: kBankSurface,
           elevation: 0,
@@ -40,7 +41,6 @@ class AnalyticsApp extends StatelessWidget {
           ),
         ),
         iconTheme: const IconThemeData(color: kTextGrey),
-        // Bottom Nav Theme for Mobile
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: kBankSurface,
           selectedItemColor: kBankPrimary,
@@ -51,11 +51,42 @@ class AnalyticsApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const MainLayout(),
+      // Use the AuthWrapper to decide the initial route
+      home: const AuthWrapper(),
     );
   }
 }
 
+// --- NEW: AuthWrapper to handle initial routing ---
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: AuthService().getToken(),
+      builder: (context, snapshot) {
+        // Show a blank screen with background color while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: kBankBg,
+            body: Center(child: CircularProgressIndicator(color: kBankPrimary)),
+          );
+        }
+        
+        // If a token exists, go straight to MainLayout
+        if (snapshot.hasData && snapshot.data != null) {
+          return const MainLayout();
+        }
+        
+        // Otherwise, show the Login Page
+        return const LoginPage();
+      },
+    );
+  }
+}
+
+// --- MainLayout remains exactly as you had it ---
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
 
@@ -72,7 +103,6 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  // Pass navigation callback to HomePage
   List<Widget> get _pages => [
     HomePage(onNavigate: switchTab), 
     const ChatPage(),
@@ -84,7 +114,6 @@ class _MainLayoutState extends State<MainLayout> {
     final isMobile = Responsive.isMobile(context);
 
     return Scaffold(
-      // --- MOBILE BOTTOM NAV ---
       bottomNavigationBar: isMobile 
           ? Container(
               decoration: const BoxDecoration(
@@ -105,7 +134,6 @@ class _MainLayoutState extends State<MainLayout> {
       body: SafeArea(
         child: Row(
           children: [
-            // --- DESKTOP SIDEBAR ---
             if (!isMobile)
               SizedBox(
                 width: 260,
@@ -115,11 +143,9 @@ class _MainLayoutState extends State<MainLayout> {
                 ),
               ),
             
-            // --- VERTICAL DIVIDER (Desktop Only) ---
             if (!isMobile)
               Container(width: 1, color: kBorderColor),
   
-            // --- MAIN CONTENT AREA ---
             Expanded(
               child: Container(
                 color: kBankBg,

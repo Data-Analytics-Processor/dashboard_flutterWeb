@@ -9,6 +9,7 @@ import 'package:dashboard_flutter/api/api_service.dart';
 import 'package:dashboard_flutter/services/report_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -181,10 +182,21 @@ class _ChatPageState extends State<ChatPage> {
               color: kBankPrimary.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome, color: kBankPrimary, size: 20),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: kBankPrimary,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
-          const Text("Nova Analyst", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "Nova Analyst",
+            style: TextStyle(
+              color: kTextWhite,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
         ],
       ),
     );
@@ -256,7 +268,10 @@ class _ChatPageState extends State<ChatPage> {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.add_circle_outline_rounded, color: kTextGrey),
+                    icon: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: kTextGrey,
+                    ),
                     onPressed: _openComposer,
                     tooltip: "Upload or Select Tool",
                   ),
@@ -284,8 +299,12 @@ class _ChatPageState extends State<ChatPage> {
                         color: kBankPrimary, // Theme Update
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: kBankPrimary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 2))
-                        ]
+                          BoxShadow(
+                            color: kBankPrimary.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: const Icon(
                         Icons.arrow_upward_rounded,
@@ -341,8 +360,12 @@ class _ChatMessage {
           bottomRight: Radius.circular(4),
         ),
         boxShadow: [
-          BoxShadow(color: kBankPrimary.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))
-        ]
+          BoxShadow(
+            color: kBankPrimary.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,10 +376,21 @@ class _ChatMessage {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 "Requested Tool: $tool",
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
-          Text(text, style: const TextStyle(color: Colors.white, height: 1.5, fontSize: 15)),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              height: 1.5,
+              fontSize: 15,
+            ),
+          ),
         ],
       ),
     );
@@ -388,7 +422,14 @@ class _ChatMessage {
               children: [
                 Icon(Icons.auto_awesome, size: 14, color: kBankPrimary),
                 const SizedBox(width: 8),
-                const Text("Analysis Result", style: TextStyle(color: kTextGrey, fontSize: 12, fontWeight: FontWeight.w600)),
+                const Text(
+                  "Analysis Result",
+                  style: TextStyle(
+                    color: kTextGrey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -417,7 +458,8 @@ class _ChatMessage {
                 OutlinedButton.icon(
                   onPressed: () {
                     // SAVE LOGIC
-                    final name = "Report_${DateFormat('dd_MMM_yy_HH_mm').format(DateTime.now())}";
+                    final name =
+                        "Report_${DateFormat('dd_MMM_yy_HH_mm').format(DateTime.now())}";
 
                     ReportService().addReport(name, text, "txt");
 
@@ -480,9 +522,19 @@ class _FileChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.insert_drive_file_rounded, size: 14, color: isUser ? Colors.white : kBankPrimary),
+          Icon(
+            Icons.insert_drive_file_rounded,
+            size: 14,
+            color: isUser ? Colors.white : kBankPrimary,
+          ),
           const SizedBox(width: 6),
-          Text(name, style: TextStyle(color: isUser ? Colors.white : kTextWhite, fontSize: 12)),
+          Text(
+            name,
+            style: TextStyle(
+              color: isUser ? Colors.white : kTextWhite,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );
@@ -501,10 +553,16 @@ class _TypingIndicator extends StatelessWidget {
           SizedBox(
             width: 8,
             height: 8,
-            child: CircularProgressIndicator(strokeWidth: 2, color: kBankPrimary),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: kBankPrimary,
+            ),
           ),
           SizedBox(width: 12),
-          Text("Analyzing data...", style: TextStyle(color: kTextGrey, fontSize: 12)),
+          Text(
+            "Analyzing data...",
+            style: TextStyle(color: kTextGrey, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -545,31 +603,48 @@ class _Composer extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Attach Context", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "Attach Context",
+            style: TextStyle(
+              color: kTextWhite,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
           const SizedBox(height: 20),
 
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: kBankPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: kBankPrimary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: const Icon(Icons.upload_file_rounded, color: kBankPrimary),
             ),
             title: const Text(
               "Upload Dataset",
               style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w600),
             ),
-            subtitle: const Text("Support for CSV, Excel", style: TextStyle(color: kTextGrey)),
+            subtitle: const Text(
+              "Support for CSV, Excel",
+              style: TextStyle(color: kTextGrey),
+            ),
             onTap: () async {
-              // --- PERMISSION CHECK START ---
-              if (Platform.isAndroid) {
+              // ONLY run Android permission checks if we are NOT on the web
+              if (!kIsWeb && Platform.isAndroid) {
                 final androidInfo = await DeviceInfoPlugin().androidInfo;
                 if (androidInfo.version.sdkInt < 33) {
                   final status = await Permission.storage.request();
                   if (!status.isGranted) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Storage permission required to upload files.")),
+                        const SnackBar(
+                          content: Text(
+                            "Storage permission required to upload files.",
+                          ),
+                        ),
                       );
                     }
                     return; // Stop here if denied
@@ -588,13 +663,24 @@ class _Composer extends StatelessWidget {
           ),
 
           const Divider(color: kBorderColor, height: 30),
-          const Text("Analysis Tools", style: TextStyle(color: kTextGrey, fontSize: 12, fontWeight: FontWeight.w600)),
+          const Text(
+            "Analysis Tools",
+            style: TextStyle(
+              color: kTextGrey,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 10),
 
           ...tools.map(
             (t) => ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.analytics_outlined, color: kTextGrey, size: 20),
+              leading: const Icon(
+                Icons.analytics_outlined,
+                color: kTextGrey,
+                size: 20,
+              ),
               title: Text(
                 _formatToolName(t["name"]),
                 style: const TextStyle(color: kTextWhite, fontSize: 14),
@@ -638,7 +724,11 @@ class _PreviewChip extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(color: kTextWhite, fontSize: 12, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: kTextWhite,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(width: 8),
           GestureDetector(

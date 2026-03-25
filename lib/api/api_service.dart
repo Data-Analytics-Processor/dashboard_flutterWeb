@@ -3,25 +3,40 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
+import 'package:dashboard_flutter/api/auth_service.dart';
 
 class ApiService {
-  static const String _localUrl = "http://localhost:5000";
-  static const String _prodUrl = "https://backend-py-edco.onrender.com"; 
-
-  // 2. Auto-switch logic
+  static const String _prodUrl = "https://brixta.site";  // fix24
+  //static const String _localUrl = "http://10.0.2.2:5000"; // localhost android
+  static const String _localUrl = "http://127.0.0.1:5000"; // localhost web
   final String _baseUrl = kReleaseMode ? _prodUrl : _localUrl;
 
   final String _sessionId = const Uuid().v4();
   String get sessionId => _sessionId;
 
+  final AuthService _authService = AuthService();
+
+  // Helper method to attach JWT headers
+  Future<Map<String, String>> _getHeaders({bool isMultipart = false}) async {
+    final token = await _authService.getToken();
+    return {
+      if (!isMultipart) "Content-Type": "application/json",
+      if (token != null) "Authorization": "Bearer $token",
+    };
+  }
+
   /* -----------------------------
    * 1. GET TOOLS 
    * ----------------------------- */
   Future<List<dynamic>> fetchTools() async {
-    final res = await http.get(Uri.parse("$_baseUrl/api/v1/chatbot/tools"));
+    final headers = await _getHeaders();
+    final res = await http.get(
+      Uri.parse("$_baseUrl/api/v1/chatbot/tools"),
+      headers: headers,
+    );
 
     if (res.statusCode != 200) {
-      throw Exception("Failed to fetch tools");
+      throw Exception("Failed to fetch tools: ${res.statusCode}");
     }
 
     final data = jsonDecode(res.body);
@@ -35,16 +50,16 @@ class ApiService {
     String filename,
     String base64Content,
   ) async {
-    // 1. Decode Base64 to bytes
     List<int> fileBytes = base64Decode(base64Content);
-
-    // 2. Prepare Multipart Request
     var request = http.MultipartRequest(
       'POST',
       Uri.parse("$_baseUrl/api/v1/chatbot/upload"),
     );
 
-    // 3. Add the file
+    // Attach JWT to the multipart request
+    final headers = await _getHeaders(isMultipart: true);
+    request.headers.addAll(headers);
+
     request.files.add(
       http.MultipartFile.fromBytes(
         'file',
@@ -53,7 +68,6 @@ class ApiService {
       ),
     );
 
-    // 4. Send
     final streamedResponse = await request.send();
     final res = await http.Response.fromStream(streamedResponse);
 
@@ -61,19 +75,18 @@ class ApiService {
       throw Exception("Dataset upload failed: ${res.body}");
     }
 
-    // 5. Return the 'file_path' that the backend needs for context
     final data = jsonDecode(res.body);
     return data["file_path"];
   }
 
   /* -----------------------------
-   * 3. CHAT (The Unified Brain)
-   * Replaces executeTool & explainResult
+   * 3. CHAT
    * ----------------------------- */
   Future<Map<String, dynamic>> sendChat({
     required String message,
-    String? csvFilePath, // Optional: Only send if a file is uploaded
+    String? csvFilePath,
   }) async {
+    final headers = await _getHeaders();
     final body = {
       "message": message,
       "session_id": _sessionId,
@@ -82,7 +95,7 @@ class ApiService {
 
     final res = await http.post(
       Uri.parse("$_baseUrl/api/v1/chatbot/chat"),
-      headers: {"Content-Type": "application/json"},
+      headers: headers,
       body: jsonEncode(body),
     );
 

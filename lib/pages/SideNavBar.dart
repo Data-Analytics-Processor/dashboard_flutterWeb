@@ -1,6 +1,8 @@
 // lib/pages/SideNavBar.dart
 import 'package:flutter/material.dart';
 import 'package:dashboard_flutter/ReusableConstants/constants.dart';
+import 'package:dashboard_flutter/api/auth_service.dart';
+import 'package:dashboard_flutter/pages/LoginPage.dart';
 
 class SideNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -43,7 +45,7 @@ class SideNavBar extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("NOVA", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
+                  const Text("NOVA", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
                   Text("ANALYTICS", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
                 ],
               )
@@ -89,10 +91,10 @@ class SideNavBar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 18,
                   backgroundColor: kBankSurfaceLight,
-                  child: const Icon(Icons.person, size: 18, color: kTextWhite),
+                  child: Icon(Icons.person, size: 18, color: kTextWhite),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -100,13 +102,58 @@ class SideNavBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("User Name", style: TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700)),
-                      Text("Pro Plan", style: TextStyle(color: kTextGrey, fontSize: 11)),
+                      const Text("Pro Plan", style: TextStyle(color: kTextGrey, fontSize: 11)),
                     ],
                   ),
                 ),
               ],
             ),
-          )
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // --- LOGOUT BUTTON ---
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () async {
+                // Clear the JWT token
+                await AuthService().logout();
+                
+                if (!context.mounted) return;
+                
+                // Navigate back to Login and clear the navigation stack
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false,
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              hoverColor: Colors.redAccent.withOpacity(0.1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kBorderColor),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      "Log Out", 
+                      style: TextStyle(
+                        color: Colors.redAccent, 
+                        fontWeight: FontWeight.w600, 
+                        fontSize: 13
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
