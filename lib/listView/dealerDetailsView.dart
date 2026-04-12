@@ -2,7 +2,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:dashboard_flutter/ReusableConstants/constants.dart';
+import 'package:adminapp/ReusableConstants/constants.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
 import '../models/outstandingReports_model.dart';

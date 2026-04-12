@@ -1,4 +1,4 @@
-package com.example.dashboard_flutter
+package com.adminapp.best
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -12,10 +12,10 @@ class ApiService {
   //static const String _baseUrl = "http://10.0.2.2:5000"; // Chat GPT - Data Analysis backend
   static const String _baseUrl = "https://backend-py-edco.onrender.com"; // Chat GPT - Data Analysis backend
 
-  //static const String _mycocoBaseUrl = 'http://brixta.site'; 
+  static const String _mycocoBaseUrl = 'https://brixta.site'; 
   //static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
   //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
-  static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost - mycoco backend for reports api (web-version)
+  //static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost - mycoco backend for reports api (web-version)
 
   // Shared instance for sharing sessionId across all pages
   static final ApiService _instance = ApiService._internal();
