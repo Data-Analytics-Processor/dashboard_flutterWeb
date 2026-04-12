@@ -1,15 +1,10 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // --- IMPORTS ---
-import 'package:dashboard_flutter/ReusableConstants/constants.dart';
-import 'models/users_model.dart'; 
-import 'pages/NavBar.dart'; 
-import 'pages/HomePage.dart';
-import 'pages/InsightsPage.dart';
-import 'pages/AIAnalyticsPage.dart';
+import 'pages/AppSelector.dart';
 import 'pages/LoginPage.dart';
-import 'pages/ProfilePage.dart';
 
 void main() {
   runApp(const AnalyticsApp());
@@ -18,155 +13,45 @@ void main() {
 class AnalyticsApp extends StatelessWidget {
   const AnalyticsApp({super.key});
 
+  // --- LIGHT THEME COLORS ---
+  static const Color _bgWhite = Color(0xFFF8FAFC);
+  static const Color _primaryNavy = Color(0xFF0A2540);
+  static const Color _textBlack = Color(0xFF1E293B);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'JUD-JSB Admin Dashboard',
+      title: 'Admin Platform',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: kBankBg,
-        textTheme: GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme),
-        colorScheme: const ColorScheme.dark(
-          primary: kBankPrimary,
-          surface: kBankSurface,
-          background: kBankBg,
-          onSurface: kTextWhite,
-        ),
-        cardTheme: CardThemeData(
-          color: kBankSurface,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: kBorderColor, width: 1),
-          ),
-        ),
-        iconTheme: const IconThemeData(color: kTextGrey),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: kBankSurface,
-          selectedItemColor: kBankPrimary,
-          unselectedItemColor: kTextGrey,
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          elevation: 0,
-        ),
-      ),
-      // --- ROUTING LOGIC ---
-      initialRoute: '/login', 
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const MainLayout(), 
-      },
-    );
-  }
-}
-
-class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
-
-  @override
-  State<MainLayout> createState() => _MainLayoutState();
-}
-
-class _MainLayoutState extends State<MainLayout> {
-  int _selectedIndex = 0;
-  int _insightsInitialTab = 0;
-  User? _currentUser;
-
-  final ValueNotifier<String?> _aiContextBridge = ValueNotifier(null);
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Retrieve the User object passed from LoginScreen arguments
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is User) {
-      _currentUser = args;
-    }
-  }
-
-  void switchTab(int index, {int initialTab = 0}) {
-    setState(() {
-      _selectedIndex = index;
-      _insightsInitialTab = initialTab;
-    });
-  }
-
-  // --- CONTEXT NAVIGATION HANDLER ---
-  void _jumpToAiChat(String initialContext) {
-    _aiContextBridge.value = initialContext; // Send the text
-    switchTab(2); // Jump to 3rd tab
-  }
-
-  List<Widget> get _pages => [
-    HomePage(onNavigate: switchTab), 
-    InsightsPage(
-      initialTabIndex: _insightsInitialTab, 
-      onOpenChat: _jumpToAiChat, // Pass the handler here
-    ), 
-    AIAnalyticsPage(contextBridge: _aiContextBridge), // Pass the bridge here
-    ProfilePage(user: _currentUser!),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    // Safety check for null user
-    if (_currentUser == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-      });
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: kBankPrimary)));
-    }
-
-    final isMobile = Responsive.isMobile(context);
-
-    return Scaffold(
-      bottomNavigationBar: isMobile 
-          ? Container(
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: kBorderColor)),
-              ),
-              child: BottomNavigationBar(
-                currentIndex: _selectedIndex,
-                onTap: switchTab,
-                items: const [
-                  BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
-                  BottomNavigationBarItem(icon: Icon(Icons.insights_rounded), label: 'Insights'),
-                  BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_rounded), label: 'Reports'),
-                  BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
-                ],
-              ),
-            )
-          : null,
       
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (!isMobile)
-              SizedBox(
-                width: 260,
-                child: SideNavBar(
-                  selectedIndex: _selectedIndex,
-                  onTabSelected: switchTab, 
-                  user: _currentUser!, // <--- CHANGED: Pass the non-null user to NavBar
-                ),
-              ),
-            
-            if (!isMobile)
-              Container(width: 1, color: kBorderColor),
-  
-            Expanded(
-              child: Container(
-                color: kBankBg,
-                child: IndexedStack(
-                  index: _selectedIndex,
-                  children: _pages, 
-                ),
-              ),
-            ),
-          ],
+      // Clean, modern light theme
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: _bgWhite,
+        textTheme: GoogleFonts.manropeTextTheme(ThemeData.light().textTheme).apply(
+          bodyColor: _textBlack,
+          displayColor: _textBlack,
+        ),
+        colorScheme: const ColorScheme.light(
+          primary: _primaryNavy,
+          background: _bgWhite,
+          surface: Colors.white,
+          onSurface: _textBlack,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: IconThemeData(color: _textBlack),
+          titleTextStyle: TextStyle(color: _textBlack, fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
+      
+      // --- ROUTING LOGIC ---
+      // We start at AppSelector, which handles Auto-Login and Role Routing
+      initialRoute: '/', 
+      routes: {
+        '/': (context) => const AppSelector(),
+        '/login': (context) => const LoginScreen(),
+      },
     );
   }
 }

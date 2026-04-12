@@ -1,8 +1,7 @@
 // lib/pages/NavBar.dart
 import 'package:flutter/material.dart';
-import 'package:dashboard_flutter/ReusableConstants/constants.dart';
-import '../models/users_model.dart';
-import 'ProfilePage.dart'; 
+import '../../models/users_model.dart';
+import './ProfilePage.dart'; // Adjust import path based on your folder structure
 
 class SideNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -16,10 +15,18 @@ class SideNavBar extends StatelessWidget {
     required this.user,
   });
 
+  // --- LIGHT THEME COLORS ---
+  static const Color _bgWhite = Color(0xFFFFFFFF); // Pure White Sidebar
+  static const Color _surfaceHover = Color(0xFFF1F5F9); // Light Slate for hover
+  static const Color _primaryNavy = Color(0xFF0A2540); // Deep Navy
+  static const Color _textBlack = Color(0xFF1E293B); // Slate Black
+  static const Color _textGrey = Color(0xFF64748B); // Cool Grey
+  static const Color _borderColor = Color(0xFFE2E8F0); // Light Grey Border
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: kBankBg,
+      color: _bgWhite,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,17 +35,17 @@ class SideNavBar extends StatelessWidget {
           Row(
             children: [
               Container(
-                height: 42, width: 42,
+                height: 42,
+                width: 42,
                 decoration: BoxDecoration(
-                  color: kBankPrimary,
+                  color: _primaryNavy,
                   borderRadius: BorderRadius.circular(12),
-                  gradient: const LinearGradient(
-                    colors: [kBankPrimary, kBankAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   boxShadow: [
-                    BoxShadow(color: kBankPrimary.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))
+                    BoxShadow(
+                      color: _primaryNavy.withOpacity(0.2), 
+                      blurRadius: 12, 
+                      offset: const Offset(0, 4)
+                    )
                   ]
                 ),
                 child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 26),
@@ -47,8 +54,14 @@ class SideNavBar extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text("Admin", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.2)),
-                  Text("Dashboard", style: TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                  Text(
+                    "Admin", 
+                    style: TextStyle(color: _textBlack, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.0)
+                  ),
+                  Text(
+                    "Dashboard", 
+                    style: TextStyle(color: _textGrey, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)
+                  ),
                 ],
               )
             ],
@@ -56,7 +69,10 @@ class SideNavBar extends StatelessWidget {
           const SizedBox(height: 50),
 
           // --- NAVIGATION ---
-          Text("PLATFORM", style: TextStyle(color: kTextGrey.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold)),
+          const Text(
+            "PLATFORM", 
+            style: TextStyle(color: _textGrey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)
+          ),
           const SizedBox(height: 12),
           
           _NavTile(
@@ -84,36 +100,39 @@ class SideNavBar extends StatelessWidget {
           const Spacer(),
           
           // --- USER PROFILE (Clickable) ---
-          // 2. Wrapped in InkWell to make the whole card clickable
           Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                // 3. Navigate to Profile Page on click
                 Navigator.push(
                   context, 
                   MaterialPageRoute(builder: (context) => ProfilePage(user: user))
                 );
               },
               borderRadius: BorderRadius.circular(14),
+              hoverColor: _surfaceHover,
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: kBankSurface,
+                  color: _bgWhite,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: kBorderColor),
+                  border: Border.all(color: _borderColor),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+                    BoxShadow(
+                      color: _textBlack.withOpacity(0.02), 
+                      blurRadius: 10, 
+                      offset: const Offset(0, 4)
+                    )
                   ]
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      backgroundColor: kBankPrimary,
+                      backgroundColor: _primaryNavy.withOpacity(0.1),
                       child: Text(
-                        user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : "A",
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        user.email.isNotEmpty ? user.email[0].toUpperCase() : "A",
+                        style: const TextStyle(color: _primaryNavy, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -122,20 +141,19 @@ class SideNavBar extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "${user.firstName} ${user.lastName}", 
-                            style: const TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w700),
+                            user.email.split('@')[0], // Shows name part of email
+                            style: const TextStyle(color: _textBlack, fontSize: 13, fontWeight: FontWeight.w700),
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            user.role.toUpperCase(), 
-                            style: const TextStyle(color: kTextGrey, fontSize: 10),
+                            user.orgRole?.toUpperCase() ?? "ADMIN", 
+                            style: const TextStyle(color: _textGrey, fontSize: 10, fontWeight: FontWeight.w600),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    // 4. Changed icon to 'Settings/Arrow' to indicate navigation
-                    const Icon(Icons.arrow_forward_ios_rounded, color: kTextGrey, size: 14),
+                    const Icon(Icons.arrow_forward_ios_rounded, color: _textGrey, size: 14),
                   ],
                 ),
               ),
@@ -171,28 +189,28 @@ class _NavTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          hoverColor: kBankSurfaceLight,
+          hoverColor: SideNavBar._surfaceHover,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: isActive ? kBankPrimary.withOpacity(0.15) : Colors.transparent,
+              // Active gets a soft navy highlight, inactive is transparent
+              color: isActive ? SideNavBar._primaryNavy.withOpacity(0.06) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
-              border: isActive ? Border.all(color: kBankPrimary.withOpacity(0.3)) : Border.all(color: Colors.transparent),
             ),
             child: Row(
               children: [
                 Icon(
                   isActive ? activeIcon : icon,
-                  color: isActive ? kBankPrimary : kTextGrey,
+                  color: isActive ? SideNavBar._primaryNavy : SideNavBar._textGrey,
                   size: 20,
                 ),
                 const SizedBox(width: 14),
                 Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? kTextWhite : kTextGrey,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    color: isActive ? SideNavBar._primaryNavy : SideNavBar._textGrey,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 14,
                   ),
                 ),
@@ -201,7 +219,7 @@ class _NavTile extends StatelessWidget {
                   Container(
                     width: 6, height: 6,
                     decoration: const BoxDecoration(
-                      color: kBankPrimary,
+                      color: SideNavBar._primaryNavy,
                       shape: BoxShape.circle,
                     ),
                   )
