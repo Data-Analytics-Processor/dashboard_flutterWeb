@@ -1,0 +1,1 @@
+// lib/models/technical_reports_model.dart

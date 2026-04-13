@@ -57,7 +57,11 @@ class _AppSelectorState extends State<AppSelector> {
       }
 
       // ROUTING LOGIC
-      if (user.jobRoles.length == 1) {
+      final isAdmin =
+        user.jobRoles.any((r) => r.toLowerCase().contains("admin")) ||
+        (user.orgRole ?? "").toLowerCase().contains("admin");
+
+      if (!isAdmin && user.jobRoles.length == 1) {
         // Single Role -> Straight to their dashboard
         Widget targetHomePage = getDepartmentHomePage(user.jobRoles.first, user);
         Navigator.of(context).pushReplacement(
