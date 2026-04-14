@@ -258,4 +258,65 @@ class ApiService {
     }
     throw Exception("Failed to fetch HR report: ${res.statusCode}");
   }
+
+  // Fetch Aggregated Manual Data
+  Future<Map<String, dynamic>> fetchManualHrData() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/hr-reports/manual-data");
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return json['data']; // Returns the aggregated arrays
+      }
+    }
+    throw Exception("Failed to fetch manual HR data");
+  }
+
+  // Post New Interviews (Batch Submission)
+  Future<bool> addHrInterview(Map<String, dynamic> payload) async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/hr-reports/interviews");
+    
+    // Note: If you attached your verifyAdminToken middleware to this route, 
+    // don't forget to add your Authorization header here!
+    // Example: headers: {"Content-Type": "application/json", "Authorization": "Bearer $token"}
+    final res = await http.post(
+      url, 
+      headers: {"Content-Type": "application/json"}, 
+      body: jsonEncode(payload)
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      
+      // If success is false but status is 200, throw the custom message
+      throw Exception(json['error'] ?? "Unknown error occurred while saving interviews.");
+    } else {
+      // Catch 400/500 backend errors and throw them to the UI
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Post New Performers (Batch Submission)
+  Future<bool> addHrPerformer(Map<String, dynamic> payload) async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/hr-reports/performers");
+    
+    final res = await http.post(
+      url, 
+      headers: {"Content-Type": "application/json"}, 
+      body: jsonEncode(payload)
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      
+      throw Exception(json['error'] ?? "Unknown error occurred while saving performers.");
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
 }
