@@ -71,14 +71,20 @@ class _PerformerTableOnly extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              Text("${isTop ? 'Top' : 'Bottom'} Performers List", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                "${isTop ? 'Top' : 'Bottom'} Performers List",
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               ElevatedButton.icon(
                 onPressed: performers.length >= 5 ? null : () => _openAddDialog(context),
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: Text("Add ${isTop ? 'Top' : 'Bottom'} Performers", style: const TextStyle(color: Colors.white)),
+                label: Text("Add ${isTop ? 'Top' : 'Bottom'}"),
                 style: ElevatedButton.styleFrom(backgroundColor: themeColor),
               ),
             ],

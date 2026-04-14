@@ -27,15 +27,23 @@ class NonTradeApprovalTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              const Text("Non-Trade Price Approvals", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Non-Trade Price Approvals",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               ElevatedButton.icon(
                 onPressed: () => _openAddDialog(context),
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
                 label: const Text("New Request", style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A2540)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0A2540),
+                ),
               ),
             ],
           ),

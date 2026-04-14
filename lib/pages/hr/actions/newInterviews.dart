@@ -27,15 +27,23 @@ class NewInterviewsTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              const Text("Scheduled Interviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Scheduled Interviews",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               ElevatedButton.icon(
                 onPressed: () => _openAddDialog(context),
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text("Schedule Interviews", style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A2540)),
+                label: const Text("Add New Interviews", style: TextStyle(color: Colors.white)), // shorter
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0A2540),
+                ),
               ),
             ],
           ),
