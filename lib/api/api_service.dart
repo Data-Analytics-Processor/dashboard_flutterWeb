@@ -8,6 +8,7 @@ import '../models/outstandingReports_model.dart';
 import '../models/verifiedDealers_model.dart';
 
 import '../models/hr_reports_model.dart';
+import '../models/sales_reports_model.dart';
 
 class ApiService {
   //static const String _mycocoBaseUrl = 'https://brixta.site';
@@ -313,6 +314,57 @@ class ApiService {
       if (json['success'] == true) return true;
       
       throw Exception(json['error'] ?? "Unknown error occurred while saving performers.");
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Fetch Latest Automated Excel Data (Sales & Collections)
+  Future<SalesReport?> fetchLatestSalesReport() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/sales-reports/latest");
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true && json['data'] != null) {
+        return SalesReport.fromJson(json['data']);
+      }
+      return null;
+    }
+    throw Exception("Failed to fetch Sales report: ${res.statusCode}");
+  }
+
+  // Fetch Aggregated Manual Data (Non-Trade Approvals)
+  Future<List<NonTradeApproval>> fetchManualSalesData() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/sales-reports/manual-data");
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        final approvalsList = json['data']['nonTradeApprovals'] as List? ?? [];
+        return approvalsList.map((item) => NonTradeApproval.fromJson(item)).toList();
+      }
+    }
+    throw Exception("Failed to fetch manual Sales data: ${res.statusCode}");
+  }
+
+  // Post New Non-Trade Approvals (Batch Submission)
+  Future<bool> addNonTradeApprovals(Map<String, dynamic> payload) async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/sales-reports/non-trade");
+    
+    final res = await http.post(
+      url, 
+      headers: {"Content-Type": "application/json"}, 
+      body: jsonEncode(payload)
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      
+      throw Exception(json['error'] ?? "Unknown error occurred while saving approvals.");
     } else {
       final json = jsonDecode(res.body);
       throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
