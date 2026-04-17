@@ -13,9 +13,9 @@ class ApiService {
   //static const String _baseUrl = "https://backend-py-edco.onrender.com"; // Chat GPT - Data Analysis backend
   static const String _baseUrl = "http://3.111.170.88"; // Chat GPT - Data Analysis backend - aws
 
-  static const String _mycocoBaseUrl = "http://65.0.208.126"; // aws - mycoco backend for reports api
+  //static const String _mycocoBaseUrl = "http://65.0.208.126"; // aws - mycoco backend for reports api
   //static const String _mycocoBaseUrl = "https://adminappbackend-ocpc.onrender.com"; // render - mycoco backend for reports api
-  //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
+  static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
   //static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost - mycoco backend for reports api (web-version)
 
   // Shared instance for sharing sessionId across all pages
