@@ -12,8 +12,9 @@ import '../models/sales_reports_model.dart';
 
 class ApiService {
   //static const String _mycocoBaseUrl = 'https://brixta.site';
-  //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost - mycoco backend for reports api
-  static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost - mycoco backend for reports api (web-version)
+  //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost
+  static const String _mycocoBaseUrl =
+      "http://127.0.0.1:8000"; // localhost (web-version)
 
   // Shared instance for sharing sessionId across all pages
   static final ApiService _instance = ApiService._internal();
@@ -161,7 +162,7 @@ class ApiService {
   }
 
   Future<List<ProjectionVsActualReport>> fetchProjectionVsActual({
-    int limit = 100,
+    int limit = 1000,
     String? institution,
     String? zone,
     String? dealerName,
@@ -202,7 +203,7 @@ class ApiService {
   }
 
   Future<List<ProjectionReport>> fetchProjectionReports({
-    int limit = 100,
+    int limit = 1000,
     String? institution,
     String? zone,
     int? verifiedDealerId,
@@ -262,7 +263,9 @@ class ApiService {
 
   // Fetch Aggregated Manual Data
   Future<Map<String, dynamic>> fetchManualHrData() async {
-    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/hr-reports/manual-data");
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/hr-reports/manual-data",
+    );
     final res = await http.get(url);
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
@@ -276,22 +279,24 @@ class ApiService {
   // Post New Interviews (Batch Submission)
   Future<bool> addHrInterview(Map<String, dynamic> payload) async {
     final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/hr-reports/interviews");
-    
-    // Note: If you attached your verifyAdminToken middleware to this route, 
+
+    // Note: If you attached your verifyAdminToken middleware to this route,
     // don't forget to add your Authorization header here!
     // Example: headers: {"Content-Type": "application/json", "Authorization": "Bearer $token"}
     final res = await http.post(
-      url, 
-      headers: {"Content-Type": "application/json"}, 
-      body: jsonEncode(payload)
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
     );
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
       if (json['success'] == true) return true;
-      
+
       // If success is false but status is 200, throw the custom message
-      throw Exception(json['error'] ?? "Unknown error occurred while saving interviews.");
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while saving interviews.",
+      );
     } else {
       // Catch 400/500 backend errors and throw them to the UI
       final json = jsonDecode(res.body);
@@ -302,18 +307,115 @@ class ApiService {
   // Post New Performers (Batch Submission)
   Future<bool> addHrPerformer(Map<String, dynamic> payload) async {
     final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/hr-reports/performers");
-    
+
     final res = await http.post(
-      url, 
-      headers: {"Content-Type": "application/json"}, 
-      body: jsonEncode(payload)
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
     );
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
       if (json['success'] == true) return true;
-      
-      throw Exception(json['error'] ?? "Unknown error occurred while saving performers.");
+
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while saving performers.",
+      );
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Edit Interview (By embedded itemId)
+  Future<bool> editHrInterview(
+    String itemId,
+    Map<String, dynamic> payload,
+  ) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/hr-reports/interviews/$itemId",
+    );
+
+    final res = await http.put(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while updating interview.",
+      );
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Delete Interview (By embedded itemId)
+  Future<bool> deleteHrInterview(String itemId) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/hr-reports/interviews/$itemId",
+    );
+
+    final res = await http.delete(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while deleting interview.",
+      );
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Edit Performer (By embedded itemId)
+  Future<bool> editHrPerformer(
+    String type,
+    String itemId,
+    Map<String, dynamic> payload,
+  ) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/hr-reports/performers/$type/$itemId",
+    );
+
+    final res = await http.put(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while updating performer.",
+      );
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Delete Performer (By embedded itemId)
+  Future<bool> deleteHrPerformer(String type, String itemId) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/hr-reports/performers/$type/$itemId",
+    );
+
+    final res = await http.delete(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while deleting performer.",
+      );
     } else {
       final json = jsonDecode(res.body);
       throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
@@ -337,14 +439,18 @@ class ApiService {
 
   // Fetch Aggregated Manual Data (Non-Trade Approvals)
   Future<List<NonTradeApproval>> fetchManualSalesData() async {
-    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/sales-reports/manual-data");
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/sales-reports/manual-data",
+    );
     final res = await http.get(url);
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
       if (json['success'] == true) {
         final approvalsList = json['data']['nonTradeApprovals'] as List? ?? [];
-        return approvalsList.map((item) => NonTradeApproval.fromJson(item)).toList();
+        return approvalsList
+            .map((item) => NonTradeApproval.fromJson(item))
+            .toList();
       }
     }
     throw Exception("Failed to fetch manual Sales data: ${res.statusCode}");
@@ -352,23 +458,73 @@ class ApiService {
 
   // Post New Non-Trade Approvals (Batch Submission)
   Future<bool> addNonTradeApprovals(Map<String, dynamic> payload) async {
-    final url = Uri.parse("$_mycocoBaseUrl/api/adminapp/sales-reports/non-trade");
-    
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/sales-reports/non-trade",
+    );
+
     final res = await http.post(
-      url, 
-      headers: {"Content-Type": "application/json"}, 
-      body: jsonEncode(payload)
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
     );
 
     if (res.statusCode == 200) {
       final json = jsonDecode(res.body);
       if (json['success'] == true) return true;
-      
-      throw Exception(json['error'] ?? "Unknown error occurred while saving approvals.");
+
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while saving approvals.",
+      );
     } else {
       final json = jsonDecode(res.body);
       throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
     }
   }
 
+  // Edit Non-Trade Approval (By embedded itemId)
+  Future<bool> editNonTradeApproval(
+    String itemId,
+    Map<String, dynamic> payload,
+  ) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/sales-reports/non-trade/$itemId",
+    );
+
+    final res = await http.put(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(payload),
+    );
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while updating approval.",
+      );
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
+
+  // Delete Non-Trade Approval (By embedded itemId)
+  Future<bool> deleteNonTradeApproval(String itemId) async {
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/adminapp/sales-reports/non-trade/$itemId",
+    );
+
+    final res = await http.delete(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) return true;
+      throw Exception(
+        json['error'] ?? "Unknown error occurred while deleting approval.",
+      );
+    } else {
+      final json = jsonDecode(res.body);
+      throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
+    }
+  }
 }

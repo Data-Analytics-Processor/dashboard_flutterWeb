@@ -9,26 +9,29 @@ class ProjectionVsActualReport {
   // --- Order Metrics ---
   final double orderProjectionMt;
   final double actualOrderReceivedMt;
-  final double doDoneMt;                    
-  final double projectionVsActualOrderMt;   
-  final double actualOrderVsDoMt;           
+  final double doDoneMt;
+  final double projectionVsActualOrderMt;
+  final double actualOrderVsDoMt;
 
   // --- Collection Metrics ---
-  final double collectionProjection;        
+  final double collectionProjection;
   final double actualCollection;
   final double shortFall;
   final double percent;
-  
-  // --- Relations & Joined Fields ---
+
+  // --- Relations ---
   final int? verifiedDealerId;
   final int? userId;
+  final String? dealerId;
+
+  // --- Joined ---
   final String? userName;
   final String? verifiedDealerPartyName;
 
   // --- Metadata ---
-  final String? sourceMessageId;            
-  final String? sourceFileName;             
-  final DateTime createdAt;                
+  final String? sourceMessageId;
+  final String? sourceFileName;
+  final DateTime createdAt;
 
   ProjectionVsActualReport({
     required this.id,
@@ -47,6 +50,7 @@ class ProjectionVsActualReport {
     required this.percent,
     this.verifiedDealerId,
     this.userId,
+    this.dealerId,
     this.userName,
     this.verifiedDealerPartyName,
     this.sourceMessageId,
@@ -55,52 +59,51 @@ class ProjectionVsActualReport {
   });
 
   factory ProjectionVsActualReport.fromJson(Map<String, dynamic> json) {
-    // Helper to safely parse doubles from String/Number/Null
     double safeDouble(dynamic val) {
       if (val == null) return 0.0;
       return double.tryParse(val.toString()) ?? 0.0;
     }
 
+    int? safeInt(dynamic val) {
+      if (val == null) return null;
+      return int.tryParse(val.toString());
+    }
+
     return ProjectionVsActualReport(
       id: json['id']?.toString() ?? '',
-      institution: json['institution']?.toString() ?? '',
-      zone: json['zone']?.toString() ?? '',
-      dealerName: json['dealerName']?.toString() ?? 'Unknown Dealer',
-      
-      reportDate: json['reportDate'] != null 
-          ? DateTime.parse(json['reportDate']) 
-          : DateTime.now(),
-      
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
+      institution: json['institution'] ?? '',
+      zone: json['zone'] ?? '',
+      dealerName: json['dealer_name'] ?? 'Unknown Dealer',
+
+      reportDate: json['report_date'] != null
+          ? DateTime.parse(json['report_date'])
           : DateTime.now(),
 
-      // Nullable Numerics (Converted to Safe Doubles)
-      orderProjectionMt: safeDouble(json['orderProjectionMt']),
-      actualOrderReceivedMt: safeDouble(json['actualOrderReceivedMt']),
-      doDoneMt: safeDouble(json['doDoneMt']),
-      projectionVsActualOrderMt: safeDouble(json['projectionVsActualOrderMt']),
-      actualOrderVsDoMt: safeDouble(json['actualOrderVsDoMt']),
-      collectionProjection: safeDouble(json['collectionProjection']),
-      actualCollection: safeDouble(json['actualCollection']),
-      shortFall: safeDouble(json['shortFall']),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+
+      orderProjectionMt: safeDouble(json['order_projection_mt']),
+      actualOrderReceivedMt: safeDouble(json['actual_order_received_mt']),
+      doDoneMt: safeDouble(json['do_done_mt']),
+      projectionVsActualOrderMt: safeDouble(json['projection_vs_actual_order_mt']),
+      actualOrderVsDoMt: safeDouble(json['actual_order_vs_do_mt']),
+
+      collectionProjection: safeDouble(json['collection_projection']),
+      actualCollection: safeDouble(json['actual_collection']),
+      shortFall: safeDouble(json['short_fall']),
       percent: safeDouble(json['percent']),
-      
-      // Relations & Joined Strings
-      verifiedDealerId: json['verifiedDealerId'] is int 
-          ? json['verifiedDealerId'] 
-          : int.tryParse(json['verifiedDealerId']?.toString() ?? ''),
-          
-      userId: json['userId'] is int 
-          ? json['userId'] 
-          : int.tryParse(json['userId']?.toString() ?? ''),
-          
-      userName: json['userName']?.toString(),
-      verifiedDealerPartyName: json['verifiedDealerPartyName']?.toString(),
 
-      // Nullable Metadata
-      sourceMessageId: json['sourceMessageId']?.toString(),
-      sourceFileName: json['sourceFileName']?.toString(),
+      verifiedDealerId: safeInt(json['verified_dealer_id']),
+      userId: safeInt(json['user_id']),
+      dealerId: json['dealer_id'],
+
+      // Joined fields
+      userName: json['user_name'],
+      verifiedDealerPartyName: json['verified_dealer_party_name'],
+
+      sourceMessageId: json['source_message_id'],
+      sourceFileName: json['source_file_name'],
     );
   }
 }

@@ -20,6 +20,49 @@ class NonTradeApprovalTab extends StatelessWidget {
     );
   }
 
+  void _openEditDialog(BuildContext context, NonTradeApproval approval) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return _EditNonTradeDialog(
+          approval: approval,
+          onRefresh: onRefresh,
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteApproval(BuildContext context, String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Request?"),
+        content: const Text("Are you sure you want to permanently delete this non-trade approval request?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          ),
+        ],
+      )
+    );
+
+    if (confirm == true) {
+      try {
+        await ApiService().deleteNonTradeApproval(id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request deleted.")));
+          onRefresh();
+        }
+      } catch (e) {
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -40,7 +83,7 @@ class NonTradeApprovalTab extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: () => _openAddDialog(context),
                 icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text("New Request", style: TextStyle(color: Colors.white)),
+                label: const Text("Add New Prices", style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0A2540),
                 ),
@@ -60,6 +103,7 @@ class NonTradeApprovalTab extends StatelessWidget {
                   DataColumn(label: Text("Unit (MT)")),
                   DataColumn(label: Text("Status")),
                   DataColumn(label: Text("Date Submitted")),
+                  DataColumn(label: Text("Actions")),
                 ],
                 rows: approvals.map((a) {
                   final date = DateTime.tryParse(a.submittedAt);
@@ -87,6 +131,13 @@ class NonTradeApprovalTab extends StatelessWidget {
                       )
                     ),
                     DataCell(Text(formattedDate, style: const TextStyle(color: Colors.grey, fontSize: 12))),
+                    DataCell(Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(icon: const Icon(Icons.edit, color: Colors.blue, size: 20), onPressed: () => _openEditDialog(context, a)),
+                        IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 20), onPressed: () => _deleteApproval(context, a.id)),
+                      ],
+                    )),
                   ]);
                 }).toList(),
               ),
@@ -98,7 +149,6 @@ class NonTradeApprovalTab extends StatelessWidget {
   }
 }
 
-// --- HELPER & DIALOG ---
 class ApprovalControllers {
   final TextEditingController partyName = TextEditingController();
   final TextEditingController rate = TextEditingController();
@@ -219,6 +269,142 @@ class _AddNonTradeDialogState extends State<_AddNonTradeDialog> {
                     child: _isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text("Submit (${_entries.length})", style: const TextStyle(color: Colors.white)),
                   )
                 ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditNonTradeDialog extends StatefulWidget {
+  final NonTradeApproval approval;
+  final VoidCallback onRefresh;
+
+  const _EditNonTradeDialog({required this.approval, required this.onRefresh});
+
+  @override
+  State<_EditNonTradeDialog> createState() => _EditNonTradeDialogState();
+}
+
+class _EditNonTradeDialogState extends State<_EditNonTradeDialog> {
+  final ApiService _apiService = ApiService();
+  final _formKey = GlobalKey<FormState>();
+  
+  late TextEditingController _partyNameCtrl;
+  late TextEditingController _rateCtrl;
+  late TextEditingController _unitCtrl;
+  late String _status;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _partyNameCtrl = TextEditingController(text: widget.approval.partyName);
+    _rateCtrl = TextEditingController(text: widget.approval.rate);
+    _unitCtrl = TextEditingController(text: widget.approval.unit);
+    _status = widget.approval.status;
+  }
+
+  @override
+  void dispose() {
+    _partyNameCtrl.dispose();
+    _rateCtrl.dispose();
+    _unitCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitEdit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      final payload = {
+        "partyName": _partyNameCtrl.text,
+        "rate": _rateCtrl.text,
+        "unit": _unitCtrl.text,
+        "status": _status,
+      };
+
+      await _apiService.editNonTradeApproval(widget.approval.id, payload);
+
+      widget.onRefresh();
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Approval updated!")));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Edit Request", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+                ],
+              ),
+              const Divider(),
+              TextFormField(
+                controller: _partyNameCtrl, 
+                decoration: const InputDecoration(labelText: "Party Name", border: OutlineInputBorder()), 
+                validator: (v) => v!.isEmpty ? "Required" : null
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _rateCtrl, 
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Rate (₹)", border: OutlineInputBorder()), 
+                      validator: (v) => v!.isEmpty ? "Required" : null
+                    )
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _unitCtrl, 
+                      decoration: const InputDecoration(labelText: "Unit", border: OutlineInputBorder()), 
+                      validator: (v) => v!.isEmpty ? "Required" : null
+                    )
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _status,
+                decoration: const InputDecoration(labelText: "Status", border: OutlineInputBorder()),
+                items: ['Pending', 'Approved', 'Rejected'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _status = val);
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitEdit,
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A2540), padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: _isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("Update", style: TextStyle(color: Colors.white)),
+                ),
               )
             ],
           ),
