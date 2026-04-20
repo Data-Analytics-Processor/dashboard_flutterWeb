@@ -11,10 +11,9 @@ import '../models/hr_reports_model.dart';
 import '../models/sales_reports_model.dart';
 
 class ApiService {
-  //static const String _mycocoBaseUrl = 'https://brixta.site';
+  static const String _mycocoBaseUrl = 'https://brixta.site';
   //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost
-  static const String _mycocoBaseUrl =
-      "http://127.0.0.1:8000"; // localhost (web-version)
+  //static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
 
   // Shared instance for sharing sessionId across all pages
   static final ApiService _instance = ApiService._internal();

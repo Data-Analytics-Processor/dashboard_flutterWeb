@@ -10,9 +10,9 @@ import 'package:jwt_decoder/jwt_decoder.dart'; // Run: flutter pub add jwt_decod
 import '../models/users_model.dart';
 
 class AuthService {
-  //static const String _baseUrl = 'https://brixta.site';
+  static const String _baseUrl = 'https://brixta.site';
   //static const String _baseUrl = 'http://10.0.2.2:8000'; // localhost
-  static const String _baseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
+  //static const String _baseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
 
   final _secureStorage = const FlutterSecureStorage();
   static const String _kCachedProfileKey = 'admin_user_profile_cache';
