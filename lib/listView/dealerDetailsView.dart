@@ -2,11 +2,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:adminapp/ReusableConstants/constants.dart';
+// import 'package:adminapp/ReusableConstants/constants.dart';
 import '../models/collectionReports_model.dart';
 import '../models/projectionReports_model.dart';
 import '../models/outstandingReports_model.dart';
-
 class DealerDetailsView extends StatelessWidget {
   final String dealerName;
   final List<CollectionReport> collections;
@@ -21,115 +20,136 @@ class DealerDetailsView extends StatelessWidget {
     this.outstanding = const [],
   });
 
+  // --- DARK THEME ---
+  static const Color _bgDark = Color(0xFF121212);
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
+  static const Color _successGreen = Color(0xFF22C55E);
+
   @override
   Widget build(BuildContext context) {
-    // --- 1. Aggregation Logic ---
     final double totalCollected = collections.fold(0.0, (s, e) => s + e.amount);
     final double totalProjected = projections.fold(0.0, (s, e) => s + (e.collectionAmount ?? 0));
     final double totalOutstanding = outstanding.fold(0.0, (s, e) => s + e.pendingAmt);
-    
-    // --- 2. Extract Metadata (Prioritize: Collections -> Projections -> Outstanding) ---
+
     String zone = "N/A";
     String district = "N/A";
     String salesPromoter = "N/A";
-    String institution = "N/A"; // JSB/JUD
+    String institution = "N/A";
     DateTime? lastPaymentDate;
 
     if (collections.isNotEmpty) {
-      // Sort to find latest date (Handle nulls safely)
       collections.sort((a, b) => b.voucherDate.compareTo(a.voucherDate));
       final latest = collections.first;
-      
+
       zone = latest.zone ?? "N/A";
       district = latest.district ?? "N/A";
       salesPromoter = latest.salesPromoterName ?? "N/A";
-      institution = latest.institution ;
+      institution = latest.institution;
       lastPaymentDate = latest.voucherDate;
-    
+
     } else if (projections.isNotEmpty) {
       final latest = projections.first;
-      zone = latest.zone ;
-      institution = latest.institution ;
-    
+      zone = latest.zone;
+      institution = latest.institution;
+
     } else if (outstanding.isNotEmpty) {
-      // 🔥 NEW: Fallback to Outstanding if no other activity found
       final latest = outstanding.first;
       zone = latest.zone ?? "N/A";
-      // Outstanding table uses boolean flag, map it to String
-      institution = latest.isAccountJsbJud ? "JSB" : "JUD"; 
+      institution = latest.isAccountJsbJud ? "JSB" : "JUD";
     }
 
     final currency = NumberFormat.compactCurrency(symbol: '₹', locale: 'en_IN', decimalDigits: 1);
     final dateFormatter = DateFormat('dd MMM yyyy');
 
     return Scaffold(
-      backgroundColor: kBankBg,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: kBankBg,
+        backgroundColor: _bgDark,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kTextGrey),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textGrey),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(dealerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(
+          dealerName,
+          style: const TextStyle(
+            color: _textWhite,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
         actions: [
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: kBankPrimary.withOpacity(0.2),
+              color: _primaryAccent.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: kBankPrimary.withOpacity(0.5))
+              border: Border.all(color: _primaryAccent.withOpacity(0.5)),
             ),
             child: Center(
               child: Text(
-                institution, 
-                style: const TextStyle(color: kBankPrimary, fontWeight: FontWeight.bold, fontSize: 12),
+                institution,
+                style: const TextStyle(
+                  color: _primaryAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           )
         ],
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 3. Profile Card ---
+
+            // --- PROFILE CARD ---
             _buildProfileCard(zone, district, salesPromoter, lastPaymentDate, dateFormatter),
-            
+
             const SizedBox(height: 24),
 
-            // --- 4. Financial Overview (Grid) ---
+            // --- STATS ---
             Row(
               children: [
-                Expanded(
-                  child: _buildStatCard("Collected", currency.format(totalCollected), Icons.download_done_rounded, kSuccessGreen),
-                ),
+                Expanded(child: _buildStatCard("Collected", currency.format(totalCollected), Icons.download_done_rounded, _successGreen)),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatCard("Projected", currency.format(totalProjected), Icons.trending_up_rounded, Colors.orangeAccent),
-                ),
+                Expanded(child: _buildStatCard("Projected", currency.format(totalProjected), Icons.trending_up_rounded, Colors.orangeAccent)),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatCard("Outstanding", currency.format(totalOutstanding), Icons.warning_amber_rounded, Colors.redAccent),
-                ),
+                Expanded(child: _buildStatCard("Outstanding", currency.format(totalOutstanding), Icons.warning_amber_rounded, Colors.redAccent)),
               ],
             ),
 
             const SizedBox(height: 32),
 
-            // --- 5. Trend Chart ---
+            // --- CHART ---
             if (collections.isNotEmpty) ...[
-              const Text("Payment History Trend", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                "Payment History Trend",
+                style: TextStyle(color: _textWhite, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 16),
               Container(
                 height: 250,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: kBankSurface,
+                  color: _surfaceDark,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: kBorderColor),
+                  border: Border.all(color: _borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    )
+                  ],
                 ),
                 child: _buildSparkline(collections),
               ),
@@ -137,8 +157,11 @@ class DealerDetailsView extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // --- 6. Recent Transactions List ---
-            const Text("Recent Transactions", style: TextStyle(color: kTextWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+            // --- TRANSACTIONS ---
+            const Text(
+              "Recent Transactions",
+              style: TextStyle(color: _textWhite, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 12),
             _buildTransactionList(collections),
           ],
@@ -151,24 +174,24 @@ class DealerDetailsView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: kBankSurface,
+        color: _surfaceDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor),
+        border: Border.all(color: _borderColor),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0,5))
-        ]
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0,6))
+        ],
       ),
       child: Column(
         children: [
           _buildRow(Icons.map_rounded, "Zone / District", "$zone / $district"),
-          const Divider(color: kBorderColor, height: 24),
+          const Divider(color: _borderColor, height: 24),
           _buildRow(Icons.person_pin_circle_rounded, "Sales Promoter", sp),
-          const Divider(color: kBorderColor, height: 24),
+          const Divider(color: _borderColor, height: 24),
           _buildRow(
-            Icons.history_rounded, 
-            "Last Payment", 
+            Icons.history_rounded,
+            "Last Payment",
             lastPay != null ? fmt.format(lastPay) : "No History",
-            isHighlight: true
+            isHighlight: true,
           ),
         ],
       ),
@@ -178,19 +201,22 @@ class DealerDetailsView extends StatelessWidget {
   Widget _buildRow(IconData icon, String label, String value, {bool isHighlight = false}) {
     return Row(
       children: [
-        Icon(icon, color: kTextGrey, size: 20),
+        Icon(icon, color: _textGrey, size: 20),
         const SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: kTextGrey, fontSize: 11)),
-            Text(value, style: TextStyle(
-              color: isHighlight ? kTextWhite : kTextWhite.withOpacity(0.9), 
-              fontWeight: FontWeight.w600,
-              fontSize: 14
-            )),
+            Text(label, style: const TextStyle(color: _textGrey, fontSize: 11)),
+            Text(
+              value,
+              style: TextStyle(
+                color: _textWhite.withOpacity(isHighlight ? 1 : 0.9),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -199,18 +225,18 @@ class DealerDetailsView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: kBankSurface,
+        color: _surfaceDark,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBorderColor),
+        border: Border.all(color: _borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 12),
-          Text(title, style: const TextStyle(color: kTextGrey, fontSize: 12)),
+          Text(title, style: const TextStyle(color: _textGrey, fontSize: 12)),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: kTextWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(color: _textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -218,8 +244,7 @@ class DealerDetailsView extends StatelessWidget {
 
   Widget _buildSparkline(List<CollectionReport> data) {
     if (data.isEmpty) return const SizedBox();
-    
-    // Group by Date for cleaner chart
+
     Map<int, double> grouped = {};
     for (var d in data) {
       int day = d.voucherDate.millisecondsSinceEpoch;
@@ -229,11 +254,10 @@ class DealerDetailsView extends StatelessWidget {
     final sortedSpots = grouped.entries
         .map((e) => FlSpot(e.key.toDouble(), e.value))
         .toList()
-        ..sort((a,b) => a.x.compareTo(b.x));
+      ..sort((a, b) => a.x.compareTo(b.x));
 
-    // Handle single data point case to avoid chart crash
     if (sortedSpots.length == 1) {
-      sortedSpots.add(FlSpot(sortedSpots[0].x + 86400000, sortedSpots[0].y)); // Add dummy point next day
+      sortedSpots.add(FlSpot(sortedSpots[0].x + 86400000, sortedSpots[0].y));
     }
 
     return LineChart(
@@ -248,20 +272,23 @@ class DealerDetailsView extends StatelessWidget {
                 final date = DateTime.fromMillisecondsSinceEpoch(s.x.toInt());
                 return LineTooltipItem(
                   "${DateFormat('MMM dd').format(date)}\n${NumberFormat.compactCurrency(symbol: '₹', locale: 'en_IN').format(s.y)}",
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 );
               }).toList();
-            }
-          )
+            },
+          ),
         ),
         lineBarsData: [
           LineChartBarData(
             spots: sortedSpots,
             isCurved: true,
-            color: kBankPrimary,
+            color: _primaryAccent,
             barWidth: 3,
             dotData: FlDotData(show: false),
-            belowBarData: BarAreaData(show: true, color: kBankPrimary.withOpacity(0.1)),
+            belowBarData: BarAreaData(
+              show: true,
+              color: _primaryAccent.withOpacity(0.1),
+            ),
           ),
         ],
       ),
@@ -272,16 +299,16 @@ class DealerDetailsView extends StatelessWidget {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: data.length > 10 ? 10 : data.length, // Show max 10 recent
-      separatorBuilder: (_,__) => const SizedBox(height: 8),
+      itemCount: data.length > 10 ? 10 : data.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final item = data[index];
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: kBankSurface,
+            color: _surfaceDark,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kBorderColor.withOpacity(0.5))
+            border: Border.all(color: _borderColor.withOpacity(0.5)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -289,14 +316,14 @@ class DealerDetailsView extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.voucherNo, style: const TextStyle(color: kTextWhite, fontSize: 13, fontWeight: FontWeight.w500)),
-                  Text(DateFormat('dd MMM yyyy').format(item.voucherDate), style: const TextStyle(color: kTextGrey, fontSize: 11)),
+                  Text(item.voucherNo, style: const TextStyle(color: _textWhite, fontSize: 13, fontWeight: FontWeight.w500)),
+                  Text(DateFormat('dd MMM yyyy').format(item.voucherDate), style: const TextStyle(color: _textGrey, fontSize: 11)),
                 ],
               ),
               Text(
                 NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0).format(item.amount),
-                style: const TextStyle(color: kSuccessGreen, fontWeight: FontWeight.bold, fontSize: 14),
-              )
+                style: const TextStyle(color: _successGreen, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
             ],
           ),
         );

@@ -23,17 +23,20 @@ class SalesHomePage extends StatefulWidget {
   @override
   State<SalesHomePage> createState() => _SalesHomePageState();
 }
-
-class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProviderStateMixin {
-  // Theme Colors
-  static const Color _bgWhite = Color(0xFFF8FAFC);
-  static const Color _primaryNavy = Color(0xFF0A2540);
-  static const Color _textBlack = Color(0xFF1E293B);
-  static const Color _textGrey = Color(0xFF64748B);
+class _SalesHomePageState extends State<SalesHomePage>
+    with SingleTickerProviderStateMixin {
+  // --- DARK THEME ---
+  static const Color _bgDark = Color(0xFF121212);
+  // static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  // static const Color _borderColor = Color(0xFF333333);
+  static const Color _errorRed = Color(0xFFEF4444);
 
   late TabController _tabController;
   final ApiService _apiService = ApiService();
-  
+
   bool _isLoading = true;
   SalesReport? _latestReport;
   List<NonTradeApproval> _nonTradeApprovals = [];
@@ -59,7 +62,6 @@ class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProvider
     });
 
     try {
-      // Parallel fetch for speed
       final results = await Future.wait([
         _apiService.fetchLatestSalesReport(),
         _apiService.fetchManualSalesData(),
@@ -85,20 +87,27 @@ class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgWhite,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _bgDark,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.deptName,
-              style: const TextStyle(color: _textBlack, fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(
+                color: _textWhite,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
             Text(
               "Welcome back, ${widget.user.email.split('@')[0]}",
-              style: const TextStyle(color: _textGrey, fontSize: 12),
+              style: const TextStyle(
+                color: _textGrey,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -108,11 +117,15 @@ class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProvider
             onPressed: _loadData,
           ),
           IconButton(
-            icon: const Icon(Icons.account_circle, color: _primaryNavy, size: 28),
+            icon: const Icon(Icons.account_circle,
+                color: _primaryAccent, size: 28),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ProfilePage(user: widget.user)),
+                MaterialPageRoute(
+                  builder: (context) =>
+                      ProfilePage(user: widget.user),
+                ),
               );
             },
           ),
@@ -120,9 +133,9 @@ class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProvider
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: _primaryNavy,
+          labelColor: _primaryAccent,
           unselectedLabelColor: _textGrey,
-          indicatorColor: _primaryNavy,
+          indicatorColor: _primaryAccent,
           indicatorWeight: 3,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
@@ -138,24 +151,39 @@ class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProvider
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: _primaryNavy));
+      return const Center(
+        child: CircularProgressIndicator(
+          color: _primaryAccent,
+        ),
+      );
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-            const SizedBox(height: 16),
-            Text("Failed to load data\n$_errorMessage", textAlign: TextAlign.center, style: const TextStyle(color: _textGrey)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadData,
-              style: ElevatedButton.styleFrom(backgroundColor: _primaryNavy),
-              child: const Text("Retry", style: TextStyle(color: Colors.white)),
-            )
-          ],
+      return Container(
+        color: _bgDark,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  color: _errorRed, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                "Failed to load data\n$_errorMessage",
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _textGrey),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryAccent,
+                ),
+                child: const Text("Retry",
+                    style: TextStyle(color: Colors.white)),
+              )
+            ],
+          ),
         ),
       );
     }
@@ -163,19 +191,15 @@ class _SalesHomePageState extends State<SalesHomePage> with SingleTickerProvider
     return TabBarView(
       controller: _tabController,
       children: [
-        // TAB 1: Sales Data (Automated)
         SalesDataTab(
           salesData: _latestReport?.salesData ?? [],
           reportDate: _latestReport?.reportDate ?? 'N/A',
         ),
-        
-        // TAB 2: Collection Data (Automated)
         CollectionDataTab(
-          collectionData: _latestReport?.collectionData ?? [],
+          collectionData:
+              _latestReport?.collectionData ?? [],
           reportDate: _latestReport?.reportDate ?? 'N/A',
         ),
-
-        // TAB 3: Non-Trade Approvals (Manual)
         NonTradeApprovalTab(
           approvals: _nonTradeApprovals,
           onRefresh: _loadData,

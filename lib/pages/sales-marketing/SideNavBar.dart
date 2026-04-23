@@ -164,7 +164,6 @@ class SideNavBar extends StatelessWidget {
     );
   }
 }
-
 class _NavTile extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -189,35 +188,49 @@ class _NavTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          hoverColor: SideNavBar._surfaceHover,
+          hoverColor: SideNavBar._surfaceHover, // ✅ exists
+
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              // Active gets a soft navy highlight, inactive is transparent
-              color: isActive ? SideNavBar._primaryNavy.withOpacity(0.06) : Colors.transparent,
+              color: isActive
+                  ? SideNavBar._primaryNavy.withOpacity(0.08) // slightly stronger for clarity
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
+                // --- ICON ---
                 Icon(
                   isActive ? activeIcon : icon,
-                  color: isActive ? SideNavBar._primaryNavy : SideNavBar._textGrey,
+                  color: isActive
+                      ? SideNavBar._primaryNavy
+                      : SideNavBar._textGrey,
                   size: 20,
                 ),
+
                 const SizedBox(width: 14),
+
+                // --- LABEL ---
                 Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? SideNavBar._primaryNavy : SideNavBar._textGrey,
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive
+                        ? SideNavBar._primaryNavy
+                        : SideNavBar._textGrey,
+                    fontWeight:
+                        isActive ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 14,
                   ),
                 ),
+
+                // --- ACTIVE DOT ---
                 if (isActive) ...[
                   const Spacer(),
                   Container(
-                    width: 6, height: 6,
+                    width: 6,
+                    height: 6,
                     decoration: const BoxDecoration(
                       color: SideNavBar._primaryNavy,
                       shape: BoxShape.circle,

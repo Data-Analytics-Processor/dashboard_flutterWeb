@@ -27,14 +27,18 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
   }
 
-  // --- NEW LIGHT THEME COLORS ---
-  static const Color _bgWhite = Color(0xFFFFFFFF); // Clean White Background
-  static const Color _surfaceWhite = Color(0xFFFFFFFF); // White Surface
-  static const Color _primaryNavy = Color(0xFF0A2540); // Deep Navy Blue Highlight
-  static const Color _textBlack = Color(0xFF1E293B); // Slate Black for main text
-  static const Color _textGrey = Color(0xFF64748B); // Cool Grey for subtext
-  static const Color _borderColor = Color(0xFFE2E8F0); // Light Grey Border
-  static const Color _inputFill = Color(0xFFF8FAFC); // Very light grey for inputs
+  // --- NEW DARK THEME COLORS (No External Imports Needed) ---
+  static const Color _bgDark = Color(0xFF121212); // Deep Dark Background
+  static const Color _surfaceDark = Color(0xFF1E1E1E); // Elevated Dark Surface
+  static const Color _primaryAccent = Color(0xFF4361EE); // Vibrant Blue Accent
+  static const Color _textWhite = Color(
+    0xFFFFFFFF,
+  ); // Crisp White for main text
+  static const Color _textGrey = Color(0xFFB3B3B3); // Soft Grey for subtext
+  static const Color _borderColor = Color(0xFF333333); // Subtle Dark Border
+  static const Color _inputFill = Color(
+    0xFF2A2A2A,
+  ); // Slightly lighter dark for inputs
   static const Color _errorRed = Color(0xFFEF4444); // Error Red
 
   Future<String> _getUniqueDeviceId() async {
@@ -68,7 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!loginId.startsWith('ADM')) {
-      setState(() => _errorMessage = 'Invalid Admin ID. Must start with "ADM".');
+      setState(
+        () => _errorMessage = 'Invalid Admin ID. Must start with "ADM".',
+      );
       return;
     }
 
@@ -77,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final deviceId = await _getUniqueDeviceId();
       // String? fcmToken = await NotificationService().getFcmToken();
-      String? fcmToken; 
+      String? fcmToken;
 
       User user = await AuthService().login(
         loginId,
@@ -88,9 +94,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (r) => false, arguments: user);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/', (r) => false, arguments: user);
     } catch (e) {
-      setState(() => _errorMessage = e.toString().replaceAll('Exception: ', ''));
+      setState(
+        () => _errorMessage = e.toString().replaceAll('Exception: ', ''),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -99,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgWhite, 
+      backgroundColor: _bgDark,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -116,14 +126,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: _primaryNavy.withOpacity(0.05), // Subtle navy bg
+                        color: _primaryAccent.withOpacity(
+                          0.1,
+                        ), // Subtle accent bg
                         shape: BoxShape.circle,
-                        border: Border.all(color: _primaryNavy.withOpacity(0.1)),
+                        border: Border.all(
+                          color: _primaryAccent.withOpacity(0.2),
+                        ),
                       ),
                       child: const Icon(
                         Icons.admin_panel_settings_rounded,
                         size: 48,
-                        color: _primaryNavy,
+                        color: _primaryAccent,
                       ),
                     ),
                   ),
@@ -135,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
-                      color: _textBlack,
+                      color: _textWhite,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -143,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'Sign in to manage operations',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: _textGrey), 
+                    style: TextStyle(fontSize: 15, color: _textGrey),
                   ),
                   const SizedBox(height: 40),
 
@@ -151,34 +165,51 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: _surfaceWhite, 
+                      color: _surfaceDark,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: _textBlack.withOpacity(0.04), // Very soft shadow for depth
+                          color: Colors.black.withOpacity(
+                            0.3,
+                          ), // Stronger shadow for dark mode depth
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
                       ],
-                      border: Border.all(color: _borderColor), 
+                      border: Border.all(color: _borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        
                         // Admin ID Label & Field
-                        const Text("Admin ID", style: TextStyle(color: _textBlack, fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Text(
+                          "Admin ID",
+                          style: TextStyle(
+                            color: _textWhite,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _loginIdController,
                           textCapitalization: TextCapitalization.characters,
-                          style: const TextStyle(color: _textBlack, fontWeight: FontWeight.w500), 
+                          style: const TextStyle(
+                            color: _textWhite,
+                            fontWeight: FontWeight.w500,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'ADM-...',
-                            hintStyle: TextStyle(color: _textGrey.withOpacity(0.5)),
-                            prefixIcon: const Icon(Icons.badge_outlined, color: _textGrey, size: 20),
+                            hintStyle: TextStyle(
+                              color: _textGrey.withOpacity(0.5),
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.badge_outlined,
+                              color: _textGrey,
+                              size: 20,
+                            ),
                             filled: true,
-                            fillColor: _inputFill, 
+                            fillColor: _inputFill,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: _borderColor),
@@ -189,35 +220,61 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: _primaryNavy, width: 1.5),
+                              borderSide: const BorderSide(
+                                color: _primaryAccent,
+                                width: 1.5,
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 16,
+                            ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 20),
 
                         // Password Label & Field
-                        const Text("Password", style: TextStyle(color: _textBlack, fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Text(
+                          "Password",
+                          style: TextStyle(
+                            color: _textWhite,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
-                          style: const TextStyle(color: _textBlack, fontWeight: FontWeight.w500), 
+                          style: const TextStyle(
+                            color: _textWhite,
+                            fontWeight: FontWeight.w500,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Enter your password',
-                            hintStyle: TextStyle(color: _textGrey.withOpacity(0.5)),
-                            prefixIcon: const Icon(Icons.lock_outline, color: _textGrey, size: 20),
+                            hintStyle: TextStyle(
+                              color: _textGrey.withOpacity(0.5),
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              color: _textGrey,
+                              size: 20,
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
                                 color: _textGrey,
                                 size: 20,
                               ),
-                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                              onPressed: () => setState(
+                                () => _isPasswordVisible = !_isPasswordVisible,
+                              ),
                             ),
                             filled: true,
-                            fillColor: _inputFill, 
+                            fillColor: _inputFill,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: _borderColor),
@@ -228,9 +285,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: _primaryNavy, width: 1.5),
+                              borderSide: const BorderSide(
+                                color: _primaryAccent,
+                                width: 1.5,
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 16,
+                            ),
                           ),
                         ),
 
@@ -243,18 +306,28 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.all(12),
                             margin: const EdgeInsets.only(bottom: 20),
                             decoration: BoxDecoration(
-                              color: _errorRed.withOpacity(0.08), 
+                              color: _errorRed.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: _errorRed.withOpacity(0.2)),
+                              border: Border.all(
+                                color: _errorRed.withOpacity(0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error_outline, color: _errorRed, size: 16),
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: _errorRed,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _errorMessage!,
-                                    style: const TextStyle(color: _errorRed, fontSize: 13, fontWeight: FontWeight.w500), 
+                                    style: const TextStyle(
+                                      color: _errorRed,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -268,8 +341,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _primaryNavy,
-                              foregroundColor: Colors.white, // Text/Spinner color
+                              backgroundColor: _primaryAccent,
+                              foregroundColor:
+                                  Colors.white, // Text/Spinner color
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -279,11 +353,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? const SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
                                   )
                                 : const Text(
                                     'Sign In',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                           ),
                         ),

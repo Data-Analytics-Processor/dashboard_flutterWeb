@@ -22,13 +22,13 @@ class HRHomePage extends StatefulWidget {
   @override
   State<HRHomePage> createState() => _HRHomePageState();
 }
-
 class _HRHomePageState extends State<HRHomePage> with SingleTickerProviderStateMixin {
-  // Theme Colors
-  static const Color _bgWhite = Color(0xFFF8FAFC);
-  static const Color _primaryNavy = Color(0xFF0A2540);
-  static const Color _textBlack = Color(0xFF1E293B);
-  static const Color _textGrey = Color(0xFF64748B);
+  // --- NEW DARK THEME COLORS ---
+  static const Color _bgDark = Color(0xFF121212); 
+  // static const Color _surfaceDark = Color(0xFF1E1E1E); 
+  static const Color _primaryAccent = Color(0xFF4361EE); 
+  static const Color _textWhite = Color(0xFFFFFFFF); 
+  static const Color _textGrey = Color(0xFFB3B3B3);
 
   late TabController _tabController;
   final ApiService _apiService = ApiService();
@@ -72,7 +72,6 @@ class _HRHomePageState extends State<HRHomePage> with SingleTickerProviderStateM
           
           final manualData = results[1] as Map<String, dynamic>;
           
-          // Map the aggregated JSON lists to your Dart models
           _allInterviews = (manualData['interviews'] as List).map((i) => HrInterview.fromJson(i)).toList();
           _topPerformers = (manualData['topPerformers'] as List).map((p) => HrPerformer.fromJson(p)).toList();
           _bottomPerformers = (manualData['bottomPerformers'] as List).map((p) => HrPerformer.fromJson(p)).toList();
@@ -93,16 +92,16 @@ class _HRHomePageState extends State<HRHomePage> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgWhite,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _bgDark,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.deptName,
-              style: const TextStyle(color: _textBlack, fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(color: _textWhite, fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Text(
               "Welcome back, ${widget.user.email.split('@')[0]}",
@@ -116,7 +115,7 @@ class _HRHomePageState extends State<HRHomePage> with SingleTickerProviderStateM
             onPressed: _loadData,
           ),
           IconButton(
-            icon: const Icon(Icons.account_circle, color: _primaryNavy, size: 28),
+            icon: const Icon(Icons.account_circle, color: _primaryAccent, size: 28),
             onPressed: () {
               Navigator.push(
                 context,
@@ -128,9 +127,9 @@ class _HRHomePageState extends State<HRHomePage> with SingleTickerProviderStateM
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: _primaryNavy,
+          labelColor: _primaryAccent, // Selected tab glows blue
           unselectedLabelColor: _textGrey,
-          indicatorColor: _primaryNavy,
+          indicatorColor: _primaryAccent,
           indicatorWeight: 3,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
@@ -143,7 +142,7 @@ class _HRHomePageState extends State<HRHomePage> with SingleTickerProviderStateM
       body: TabBarView(
         controller: _tabController,
         children: [
-          // TAB 1: Vacancies (Read-Only Data from MS Graph)
+          // TAB 1: Vacancies
           VacanciesListTab(
             vacancies: _latestReport?.vacancies ?? [],
             reportDate: _latestReport?.reportDate ?? 'N/A',

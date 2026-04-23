@@ -3,19 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/users_model.dart';
 import '../../api/auth_service.dart';
-
 class ProfilePage extends StatelessWidget {
   final User user;
 
   const ProfilePage({super.key, required this.user});
 
-  // --- LIGHT THEME COLORS ---
-  static const Color _bgWhite = Color(0xFFF8FAFC);
-  static const Color _surfaceWhite = Color(0xFFFFFFFF);
-  static const Color _primaryNavy = Color(0xFF0A2540);
-  static const Color _textBlack = Color(0xFF1E293B);
-  static const Color _textGrey = Color(0xFF64748B);
-  static const Color _borderColor = Color(0xFFE2E8F0);
+  // --- NEW DARK THEME COLORS ---
+  static const Color _bgDark = Color(0xFF121212);
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
   static const Color _errorRed = Color(0xFFEF4444);
 
   Future<void> _handleLogout(BuildContext context) async {
@@ -23,13 +22,13 @@ class ProfilePage extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: _surfaceWhite,
+          backgroundColor: _surfaceDark,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           title: const Text(
             "Sign Out",
-            style: TextStyle(color: _textBlack, fontWeight: FontWeight.bold),
+            style: TextStyle(color: _textWhite, fontWeight: FontWeight.bold),
           ),
           content: const Text(
             "Are you sure you want to sign out?",
@@ -90,20 +89,20 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgWhite,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: _bgWhite,
+        backgroundColor: _bgDark,
         elevation: 0,
         centerTitle: true,
         title: const Text(
           "My Profile",
           style: TextStyle(
-            color: _textBlack,
+            color: _textWhite,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        iconTheme: const IconThemeData(color: _textBlack),
+        iconTheme: const IconThemeData(color: _textWhite),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -119,10 +118,10 @@ class ProfilePage extends StatelessWidget {
                     height: 100,
                     width: 100,
                     decoration: BoxDecoration(
-                      color: _primaryNavy.withOpacity(0.05),
+                      color: _primaryAccent.withOpacity(0.1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: _primaryNavy.withOpacity(0.1),
+                        color: _primaryAccent.withOpacity(0.2),
                         width: 2,
                       ),
                     ),
@@ -130,7 +129,7 @@ class ProfilePage extends StatelessWidget {
                       child: Icon(
                         Icons.person_rounded,
                         size: 50,
-                        color: _primaryNavy,
+                        color: _primaryAccent,
                       ),
                     ),
                   ),
@@ -143,7 +142,7 @@ class ProfilePage extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: _textBlack,
+                    color: _textWhite,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -153,7 +152,7 @@ class ProfilePage extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: _primaryNavy,
+                    color: _primaryAccent,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -172,12 +171,12 @@ class ProfilePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 Container(
                   decoration: BoxDecoration(
-                    color: _surfaceWhite,
+                    color: _surfaceDark,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: _borderColor),
                     boxShadow: [
                       BoxShadow(
-                        color: _textBlack.withOpacity(0.02),
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -234,12 +233,12 @@ class ProfilePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 Container(
                   decoration: BoxDecoration(
-                    color: _surfaceWhite,
+                    color: _surfaceDark,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: _borderColor),
                     boxShadow: [
                       BoxShadow(
-                        color: _textBlack.withOpacity(0.02),
+                        color: Colors.black.withOpacity(0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -253,19 +252,19 @@ class ProfilePage extends StatelessWidget {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: _primaryNavy.withOpacity(0.05),
+                          color: _primaryAccent.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.shield_outlined,
-                          color: _primaryNavy,
+                          color: _primaryAccent,
                           size: 20,
                         ),
                       ),
                       title: const Text(
                         'Privacy & Security',
                         style: TextStyle(
-                          color: _textBlack,
+                          color: _textWhite,
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
                         ),
@@ -375,7 +374,7 @@ class _ProfileRow extends StatelessWidget {
               maxLines: 2,
               style: const TextStyle(
                 fontSize: 14,
-                color: ProfilePage._textBlack,
+                color: ProfilePage._textWhite, // Updated to _textWhite
                 fontWeight: FontWeight.w600,
               ),
             ),

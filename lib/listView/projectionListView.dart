@@ -1,13 +1,19 @@
 // lib/listView/projectionListView.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:adminapp/ReusableConstants/constants.dart';
+// import 'package:adminapp/ReusableConstants/constants.dart';
 import '../models/projectionReports_model.dart';
-
 class ProjectionListView extends StatelessWidget {
   final List<ProjectionReport> projections;
 
   const ProjectionListView({super.key, required this.projections});
+
+  // --- DARK THEME ---
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
 
   @override
   Widget build(BuildContext context) {
@@ -15,80 +21,118 @@ class ProjectionListView extends StatelessWidget {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(20.0),
-          child: Text("No projections found for this selection.", style: TextStyle(color: kTextGrey)),
+          child: Text(
+            "No projections found for this selection.",
+            style: TextStyle(color: _textGrey),
+          ),
         ),
       );
     }
 
-    final currency = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final currency =
+        NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
 
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: projections.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: kBorderColor),
+      separatorBuilder: (_, __) =>
+          const Divider(height: 1, color: _borderColor),
       itemBuilder: (context, index) {
         final item = projections[index];
 
-        // 🔥 FIX: Check for Empty Strings ("") too, not just Null.
-        // Priority: Collection Dealer -> Order Dealer -> Unknown
+        // --- DEALER NAME LOGIC ---
         String dealerName = "Unknown Dealer";
-        
-        if (item.collectionDealerName != null && item.collectionDealerName!.trim().isNotEmpty) {
+
+        if (item.collectionDealerName != null &&
+            item.collectionDealerName!.trim().isNotEmpty) {
           dealerName = item.collectionDealerName!;
-        } else if (item.orderDealerName != null && item.orderDealerName!.trim().isNotEmpty) {
+        } else if (item.orderDealerName != null &&
+            item.orderDealerName!.trim().isNotEmpty) {
           dealerName = item.orderDealerName!;
         }
-        
+
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+
+          // --- ICON ---
           leading: CircleAvatar(
-            backgroundColor: Colors.deepPurple.withOpacity(0.1),
+            backgroundColor: _primaryAccent.withOpacity(0.15),
             radius: 20,
-            child: const Icon(Icons.show_chart_rounded, color: Colors.deepPurpleAccent, size: 18),
+            child: const Icon(
+              Icons.show_chart_rounded,
+              color: _primaryAccent,
+              size: 18,
+            ),
           ),
+
+          // --- TITLE ---
           title: Text(
             dealerName,
-            style: const TextStyle(color: kTextWhite, fontWeight: FontWeight.w600, fontSize: 14),
+            style: const TextStyle(
+              color: _textWhite,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
+
+          // --- SUBTITLE ---
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 4),
               Text(
                 "${DateFormat('dd MMM').format(item.reportDate)} • ${item.institution}",
-                style: const TextStyle(color: kTextGrey, fontSize: 11),
+                style: const TextStyle(
+                  color: _textGrey,
+                  fontSize: 11,
+                ),
               ),
               if (item.orderQtyMt != null && item.orderQtyMt! > 0)
-                 Text(
+                Text(
                   "Order Plan: ${item.orderQtyMt} MT",
-                  style: const TextStyle(color: kTextGrey, fontSize: 10),
+                  style: const TextStyle(
+                    color: _textGrey,
+                    fontSize: 10,
+                  ),
                 ),
             ],
           ),
+
+          // --- TRAILING ---
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Only show amount if it exists and is greater than 0
               Text(
-                (item.collectionAmount != null && item.collectionAmount! > 0) 
-                    ? currency.format(item.collectionAmount) 
+                (item.collectionAmount != null &&
+                        item.collectionAmount! > 0)
+                    ? currency.format(item.collectionAmount)
                     : "-",
-                style: const TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  color: _primaryAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: kBankSurfaceLight,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: kBorderColor)
+                  color: _surfaceDark,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: _borderColor),
                 ),
                 child: Text(
-                  item.zone, 
-                  style: const TextStyle(color: kTextGrey, fontSize: 10, fontWeight: FontWeight.bold),
+                  item.zone,
+                  style: const TextStyle(
+                    color: _textGrey,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

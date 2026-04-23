@@ -15,6 +15,15 @@ class NewInterviewsTab extends StatelessWidget {
     required this.onRefresh,
   });
 
+  // --- DARK THEME COLORS ---
+  static const Color _bgDark = Color(0xFF121212);
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
+  static const Color _errorRed = Color(0xFFEF4444);
+
   void _openAddDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -39,15 +48,22 @@ class NewInterviewsTab extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Interview?"),
-        content: const Text("Are you sure you want to remove this candidate?"),
+        backgroundColor: _surfaceDark,
+        title: const Text(
+          "Delete Interview?",
+          style: TextStyle(color: _textWhite),
+        ),
+        content: const Text(
+          "Are you sure you want to remove this candidate?",
+          style: TextStyle(color: _textGrey),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            child: const Text("Cancel", style: TextStyle(color: _textGrey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: _errorRed),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete", style: TextStyle(color: Colors.white)),
           ),
@@ -60,116 +76,141 @@ class NewInterviewsTab extends StatelessWidget {
         await _apiService.deleteHrInterview(id);
 
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Interview deleted.")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Interview deleted."),
+              backgroundColor: _surfaceDark,
+            ),
+          );
           onRefresh();
         }
       } catch (e) {
-        if (context.mounted)
+        if (context.mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              const Text(
-                "Scheduled Interviews",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _openAddDialog(context),
-                icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                label: const Text(
-                  "Add New Interviews",
-                  style: TextStyle(color: Colors.white),
+    return Container(
+      color: _bgDark,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                const Text(
+                  "Scheduled Interviews",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _textWhite,
+                  ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0A2540),
+                ElevatedButton.icon(
+                  onPressed: () => _openAddDialog(context),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 18),
+                  label: const Text(
+                    "Add New Interviews",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryAccent,
+                    elevation: 2,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+              ],
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text("Name")),
-                  DataColumn(label: Text("Designation")),
-                  DataColumn(label: Text("Department")),
-                  DataColumn(label: Text("Date")),
-                  DataColumn(label: Text("Actions")),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: _surfaceDark,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
                 ],
-                rows: interviews.asMap().entries.map((entry) {
-                  HrInterview i = entry.value;
-                  return DataRow(
-                    cells: [
-                      DataCell(
-                        Text(
-                          i.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingTextStyle: const TextStyle(
+                    color: _textGrey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  dataTextStyle: const TextStyle(color: _textWhite),
+                  columns: const [
+                    DataColumn(label: Text("Name")),
+                    DataColumn(label: Text("Designation")),
+                    DataColumn(label: Text("Department")),
+                    DataColumn(label: Text("Date")),
+                    DataColumn(label: Text("Actions")),
+                  ],
+                  rows: interviews.asMap().entries.map((entry) {
+                    HrInterview i = entry.value;
+                    return DataRow(
+                      cells: [
+                        DataCell(
+                          Text(
+                            i.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ),
-                      DataCell(Text(i.designation)),
-                      DataCell(Text(i.department)),
-                      DataCell(
-                        Text(
-                          i.dateOfInterview,
-                          style: const TextStyle(color: Colors.blue),
+                        DataCell(Text(i.designation)),
+                        DataCell(Text(i.department)),
+                        DataCell(
+                          Text(
+                            i.dateOfInterview,
+                            style: const TextStyle(color: _primaryAccent),
+                          ),
                         ),
-                      ),
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: Colors.blue,
-                                size: 20,
+                        DataCell(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: _primaryAccent,
+                                  size: 20,
+                                ),
+                                onPressed: () => _openEditDialog(context, i),
                               ),
-                              onPressed: () => _openEditDialog(context, i),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete,
-                                color: Colors.red,
-                                size: 20,
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: _errorRed,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    _deleteInterview(context, i.id),
                               ),
-                              onPressed: () => _deleteInterview(context, i.id),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                }).toList(),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -189,6 +230,8 @@ class InterviewControllers {
   }
 }
 
+// ================= ADD DIALOG =================
+
 class _AddInterviewsDialog extends StatefulWidget {
   final VoidCallback onRefresh;
   const _AddInterviewsDialog({required this.onRefresh});
@@ -202,6 +245,14 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
   final _formKey = GlobalKey<FormState>();
   final List<InterviewControllers> _entries = [InterviewControllers()];
   bool _isSubmitting = false;
+
+  // --- DARK COLORS ---
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
+  static const Color _errorRed = Color(0xFFEF4444);
 
   @override
   void dispose() {
@@ -217,6 +268,18 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: _primaryAccent,
+              surface: _surfaceDark,
+              onSurface: _textWhite,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -254,19 +317,34 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
           ).showSnackBar(const SnackBar(content: Text("Interviews added!")));
         }
       }
-    } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
+  InputDecoration _inputStyle(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: _textGrey),
+      filled: true,
+      fillColor: _surfaceDark,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _borderColor),
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: _borderColor),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: _primaryAccent, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: _surfaceDark,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 600,
@@ -275,27 +353,32 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     "Schedule New Interviews",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: _textWhite,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, color: _textGrey),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
-              const Divider(),
+              const Divider(color: _borderColor),
+
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _entries.length,
-                  separatorBuilder: (_, __) => const Divider(height: 32),
+                  separatorBuilder: (_, __) =>
+                      const Divider(color: _borderColor),
                   itemBuilder: (context, index) {
                     final entry = _entries[index];
                     return Column(
@@ -305,10 +388,10 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
                             Expanded(
                               child: TextFormField(
                                 controller: entry.name,
-                                decoration: InputDecoration(
-                                  labelText: "Candidate Name #${index + 1}",
-                                  border: const OutlineInputBorder(),
+                                decoration: _inputStyle(
+                                  "Candidate Name #${index + 1}",
                                 ),
+                                style: const TextStyle(color: _textWhite),
                                 validator: (v) => v!.isEmpty ? "Req" : null,
                               ),
                             ),
@@ -316,7 +399,7 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
                               IconButton(
                                 icon: const Icon(
                                   Icons.delete,
-                                  color: Colors.red,
+                                  color: _errorRed,
                                 ),
                                 onPressed: () => setState(() {
                                   _entries[index].dispose();
@@ -331,10 +414,8 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
                             Expanded(
                               child: TextFormField(
                                 controller: entry.desig,
-                                decoration: const InputDecoration(
-                                  labelText: "Designation",
-                                  border: OutlineInputBorder(),
-                                ),
+                                decoration: _inputStyle("Designation"),
+                                style: const TextStyle(color: _textWhite),
                                 validator: (v) => v!.isEmpty ? "Req" : null,
                               ),
                             ),
@@ -342,10 +423,8 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
                             Expanded(
                               child: TextFormField(
                                 controller: entry.dept,
-                                decoration: const InputDecoration(
-                                  labelText: "Department",
-                                  border: OutlineInputBorder(),
-                                ),
+                                decoration: _inputStyle("Department"),
+                                style: const TextStyle(color: _textWhite),
                                 validator: (v) => v!.isEmpty ? "Req" : null,
                               ),
                             ),
@@ -356,11 +435,13 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
                           controller: entry.date,
                           readOnly: true,
                           onTap: () => _selectDate(entry.date),
-                          decoration: const InputDecoration(
-                            labelText: "Date",
-                            suffixIcon: Icon(Icons.calendar_today),
-                            border: OutlineInputBorder(),
+                          decoration: _inputStyle("Date").copyWith(
+                            suffixIcon: const Icon(
+                              Icons.calendar_today,
+                              color: _textGrey,
+                            ),
                           ),
+                          style: const TextStyle(color: _textWhite),
                           validator: (v) => v!.isEmpty ? "Req" : null,
                         ),
                       ],
@@ -368,20 +449,25 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
                   },
                 ),
               ),
+
               const SizedBox(height: 16),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TextButton.icon(
                     onPressed: () =>
                         setState(() => _entries.add(InterviewControllers())),
-                    icon: const Icon(Icons.add),
-                    label: const Text("Add Another"),
+                    icon: const Icon(Icons.add, color: _primaryAccent),
+                    label: const Text(
+                      "Add Another",
+                      style: TextStyle(color: _primaryAccent),
+                    ),
                   ),
                   ElevatedButton(
                     onPressed: _isSubmitting ? null : _submitBatch,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0A2540),
+                      backgroundColor: _primaryAccent,
                     ),
                     child: _isSubmitting
                         ? const SizedBox(
@@ -407,6 +493,8 @@ class _AddInterviewsDialogState extends State<_AddInterviewsDialog> {
   }
 }
 
+// ================= EDIT DIALOG =================
+
 class _EditInterviewDialog extends StatefulWidget {
   final HrInterview interview;
   final VoidCallback onRefresh;
@@ -425,6 +513,12 @@ class _EditInterviewDialogState extends State<_EditInterviewDialog> {
   final _formKey = GlobalKey<FormState>();
   late InterviewControllers entry;
   bool _isSubmitting = false;
+
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
 
   @override
   void initState() {
@@ -456,19 +550,36 @@ class _EditInterviewDialogState extends State<_EditInterviewDialog> {
     }
   }
 
+  InputDecoration _inputStyle(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: _textGrey),
+      filled: true,
+      fillColor: _surfaceDark,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: _borderColor),
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: _borderColor),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: _primaryAccent, width: 1.5),
+      ),
+    );
+  }
+
   Future<void> _submitEdit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
 
     try {
-      final payload = {
+      await _apiService.editHrInterview(widget.interview.id, {
         "name": entry.name.text,
         "designation": entry.desig.text,
         "department": entry.dept.text,
         "dateOfInterview": entry.date.text,
-      };
-
-      await _apiService.editHrInterview(widget.interview.id, payload);
+      });
 
       widget.onRefresh();
       if (mounted) {
@@ -477,11 +588,6 @@ class _EditInterviewDialogState extends State<_EditInterviewDialog> {
           context,
         ).showSnackBar(const SnackBar(content: Text("Interview updated!")));
       }
-    } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -490,6 +596,7 @@ class _EditInterviewDialogState extends State<_EditInterviewDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      backgroundColor: _surfaceDark,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 400,
@@ -498,67 +605,72 @@ class _EditInterviewDialogState extends State<_EditInterviewDialog> {
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     "Edit Interview",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: _textWhite,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, color: _textGrey),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
-              const Divider(),
+              const Divider(color: _borderColor),
+
               TextFormField(
                 controller: entry.name,
-                decoration: const InputDecoration(
-                  labelText: "Candidate Name",
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _inputStyle("Candidate Name"),
+                style: const TextStyle(color: _textWhite),
                 validator: (v) => v!.isEmpty ? "Req" : null,
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: entry.desig,
-                decoration: const InputDecoration(
-                  labelText: "Designation",
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _inputStyle("Designation"),
+                style: const TextStyle(color: _textWhite),
                 validator: (v) => v!.isEmpty ? "Req" : null,
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: entry.dept,
-                decoration: const InputDecoration(
-                  labelText: "Department",
-                  border: OutlineInputBorder(),
-                ),
+                decoration: _inputStyle("Department"),
+                style: const TextStyle(color: _textWhite),
                 validator: (v) => v!.isEmpty ? "Req" : null,
               ),
               const SizedBox(height: 12),
+
               TextFormField(
                 controller: entry.date,
                 readOnly: true,
                 onTap: _selectDate,
-                decoration: const InputDecoration(
-                  labelText: "Date",
-                  suffixIcon: Icon(Icons.calendar_today),
-                  border: OutlineInputBorder(),
+                decoration: _inputStyle("Date").copyWith(
+                  suffixIcon: const Icon(
+                    Icons.calendar_today,
+                    color: _textGrey,
+                  ),
                 ),
+                style: const TextStyle(color: _textWhite),
                 validator: (v) => v!.isEmpty ? "Req" : null,
               ),
+
               const SizedBox(height: 24),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitEdit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0A2540),
+                    backgroundColor: _primaryAccent,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: _isSubmitting

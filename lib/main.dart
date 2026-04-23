@@ -9,45 +9,84 @@ import 'pages/LoginPage.dart';
 void main() {
   runApp(const AnalyticsApp());
 }
-
 class AnalyticsApp extends StatelessWidget {
   const AnalyticsApp({super.key});
 
-  // --- LIGHT THEME COLORS ---
-  static const Color _bgWhite = Color(0xFFF8FAFC);
-  static const Color _primaryNavy = Color(0xFF0A2540);
-  static const Color _textBlack = Color(0xFF1E293B);
+  // --- DARK THEME ---
+  static const Color _bgDark = Color(0xFF121212);
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Admin Platform',
       debugShowCheckedModeBanner: false,
-      
-      // Clean, modern light theme
-      theme: ThemeData.light().copyWith(
-        scaffoldBackgroundColor: _bgWhite,
-        textTheme: GoogleFonts.manropeTextTheme(ThemeData.light().textTheme).apply(
-          bodyColor: _textBlack,
-          displayColor: _textBlack,
+
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: _bgDark,
+
+        // --- TYPOGRAPHY ---
+        textTheme: GoogleFonts.manropeTextTheme(
+          ThemeData.dark().textTheme,
+        ).apply(
+          bodyColor: _textWhite,
+          displayColor: _textWhite,
         ),
-        colorScheme: const ColorScheme.light(
-          primary: _primaryNavy,
-          background: _bgWhite,
-          surface: Colors.white,
-          onSurface: _textBlack,
+
+        // --- COLOR SYSTEM ---
+        colorScheme: const ColorScheme.dark(
+          primary: _primaryAccent,
+          background: _bgDark,
+          surface: _surfaceDark,
+          onSurface: _textWhite,
         ),
+
+        // --- APP BAR ---
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
+          backgroundColor: _bgDark,
           elevation: 0,
-          iconTheme: IconThemeData(color: _textBlack),
-          titleTextStyle: TextStyle(color: _textBlack, fontSize: 18, fontWeight: FontWeight.bold),
+          iconTheme: IconThemeData(color: _textWhite),
+          titleTextStyle: TextStyle(
+            color: _textWhite,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        // --- DIVIDERS ---
+        dividerColor: Color(0xFF333333),
+
+        // --- INPUTS (GLOBAL CONSISTENCY) ---
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: _surfaceDark,
+          labelStyle: const TextStyle(color: _textGrey),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: _primaryAccent, width: 1.5),
+          ),
+        ),
+
+        // --- BUTTONS ---
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _primaryAccent,
+            foregroundColor: Colors.white,
+          ),
         ),
       ),
-      
-      // --- ROUTING LOGIC ---
-      // We start at AppSelector, which handles Auto-Login and Role Routing
-      initialRoute: '/', 
+
+      // --- ROUTING ---
+      initialRoute: '/',
       routes: {
         '/': (context) => const AppSelector(),
         '/login': (context) => const LoginScreen(),

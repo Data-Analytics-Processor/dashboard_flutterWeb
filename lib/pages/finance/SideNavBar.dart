@@ -15,18 +15,19 @@ class SideNavBar extends StatelessWidget {
     required this.user,
   });
 
-  // --- LIGHT THEME COLORS ---
-  static const Color _bgWhite = Color(0xFFFFFFFF); // Pure White Sidebar
-  static const Color _surfaceHover = Color(0xFFF1F5F9); // Light Slate for hover
-  static const Color _primaryNavy = Color(0xFF0A2540); // Deep Navy
-  static const Color _textBlack = Color(0xFF1E293B); // Slate Black
-  static const Color _textGrey = Color(0xFF64748B); // Cool Grey
-  static const Color _borderColor = Color(0xFFE2E8F0); // Light Grey Border
+  // --- NEW DARK THEME COLORS ---
+  static const Color _bgDark = Color(0xFF121212); // Deep Dark Sidebar
+  static const Color _surfaceDark = Color(0xFF1E1E1E); // Elevated Dark Surface
+  static const Color _surfaceHover = Color(0xFF2A2A2A); // Smooth Dark Hover
+  static const Color _primaryAccent = Color(0xFF4361EE); // Vibrant Blue Accent
+  static const Color _textWhite = Color(0xFFFFFFFF); // Crisp White
+  static const Color _textGrey = Color(0xFFB3B3B3); // Soft Grey
+  static const Color _borderColor = Color(0xFF333333); // Subtle Dark Border
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: _bgWhite,
+      color: _bgDark,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,17 +39,18 @@ class SideNavBar extends StatelessWidget {
                 height: 42,
                 width: 42,
                 decoration: BoxDecoration(
-                  color: _primaryNavy,
+                  color: _primaryAccent.withOpacity(0.1), // Adjusted for dark theme
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _primaryAccent.withOpacity(0.3)),
                   boxShadow: [
                     BoxShadow(
-                      color: _primaryNavy.withOpacity(0.2), 
+                      color: _primaryAccent.withOpacity(0.15), 
                       blurRadius: 12, 
                       offset: const Offset(0, 4)
                     )
                   ]
                 ),
-                child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 26),
+                child: const Icon(Icons.bolt_rounded, color: _primaryAccent, size: 26),
               ),
               const SizedBox(width: 14),
               Column(
@@ -56,7 +58,7 @@ class SideNavBar extends StatelessWidget {
                 children: const [
                   Text(
                     "Admin", 
-                    style: TextStyle(color: _textBlack, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.0)
+                    style: TextStyle(color: _textWhite, fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1.0)
                   ),
                   Text(
                     "Dashboard", 
@@ -114,12 +116,12 @@ class SideNavBar extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _bgWhite,
+                  color: _surfaceDark,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: _borderColor),
                   boxShadow: [
                     BoxShadow(
-                      color: _textBlack.withOpacity(0.02), 
+                      color: Colors.black.withOpacity(0.2), // Darkened shadow
                       blurRadius: 10, 
                       offset: const Offset(0, 4)
                     )
@@ -129,10 +131,10 @@ class SideNavBar extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      backgroundColor: _primaryNavy.withOpacity(0.1),
+                      backgroundColor: _primaryAccent.withOpacity(0.1),
                       child: Text(
                         user.email.isNotEmpty ? user.email[0].toUpperCase() : "A",
-                        style: const TextStyle(color: _primaryNavy, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: _primaryAccent, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -141,8 +143,8 @@ class SideNavBar extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            user.email.split('@')[0], // Shows name part of email
-                            style: const TextStyle(color: _textBlack, fontSize: 13, fontWeight: FontWeight.w700),
+                            user.email.split('@')[0], 
+                            style: const TextStyle(color: _textWhite, fontSize: 13, fontWeight: FontWeight.w700),
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
@@ -194,22 +196,22 @@ class _NavTile extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              // Active gets a soft navy highlight, inactive is transparent
-              color: isActive ? SideNavBar._primaryNavy.withOpacity(0.06) : Colors.transparent,
+              // Active gets a soft accent highlight, inactive is transparent
+              color: isActive ? SideNavBar._primaryAccent.withOpacity(0.15) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
                 Icon(
                   isActive ? activeIcon : icon,
-                  color: isActive ? SideNavBar._primaryNavy : SideNavBar._textGrey,
+                  color: isActive ? SideNavBar._primaryAccent : SideNavBar._textGrey,
                   size: 20,
                 ),
                 const SizedBox(width: 14),
                 Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? SideNavBar._primaryNavy : SideNavBar._textGrey,
+                    color: isActive ? SideNavBar._textWhite : SideNavBar._textGrey, // White text for better contrast when active
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     fontSize: 14,
                   ),
@@ -219,7 +221,7 @@ class _NavTile extends StatelessWidget {
                   Container(
                     width: 6, height: 6,
                     decoration: const BoxDecoration(
-                      color: SideNavBar._primaryNavy,
+                      color: SideNavBar._primaryAccent,
                       shape: BoxShape.circle,
                     ),
                   )

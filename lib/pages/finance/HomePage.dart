@@ -1,36 +1,44 @@
 // lib/pages/finance/HomePage.dart
 import 'package:flutter/material.dart';
 import '../../models/users_model.dart';
-import 'ProfilePage.dart'; 
+import 'ProfilePage.dart';
 
 class FinanceHomePage extends StatelessWidget {
   final User user;
   final String deptName;
 
   const FinanceHomePage({
-    super.key, 
-    required this.user, 
-    required this.deptName
+    super.key,
+    required this.user,
+    required this.deptName,
   });
 
-  static const Color _bgWhite = Color(0xFFF8FAFC);
-  static const Color _primaryNavy = Color(0xFF0A2540);
-  static const Color _textBlack = Color(0xFF1E293B);
-  static const Color _textGrey = Color(0xFF64748B);
+  // --- NEW DARK THEME COLORS ---
+  static const Color _bgDark = Color(0xFF121212);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgWhite,
+      backgroundColor: _bgDark,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: _bgDark,
         elevation: 0,
+        iconTheme: const IconThemeData(
+          color: _textWhite,
+        ), // Ensures back button is white
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               deptName,
-              style: const TextStyle(color: _textBlack, fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(
+                color: _textWhite,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
             Text(
               "Welcome back, ${user.email.split('@')[0]}",
@@ -40,11 +48,17 @@ class FinanceHomePage extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle, color: _primaryNavy, size: 28),
+            icon: const Icon(
+              Icons.account_circle,
+              color: _primaryAccent,
+              size: 28,
+            ),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ProfilePage(user: user)),
+                MaterialPageRoute(
+                  builder: (context) => ProfilePage(user: user),
+                ),
               );
             },
           ),
@@ -57,12 +71,22 @@ class FinanceHomePage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.dashboard_customize_rounded, size: 80, color: _primaryNavy.withOpacity(0.2)),
+              Icon(
+                Icons.dashboard_customize_rounded,
+                size: 80,
+                color: _primaryAccent.withOpacity(
+                  0.3,
+                ), // Adjusted opacity for dark mode
+              ),
               const SizedBox(height: 24),
               Text(
                 "Welcome to $deptName",
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: _textBlack),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: _textWhite,
+                ),
               ),
               const SizedBox(height: 12),
               const Text(
