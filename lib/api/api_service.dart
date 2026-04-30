@@ -9,11 +9,13 @@ import '../models/verifiedDealers_model.dart';
 
 import '../models/hr_reports_model.dart';
 import '../models/sales_reports_model.dart';
+import '../models/finance_reports_model.dart';
+import '../models/logistics_reports_model.dart';
 
 class ApiService {
-  static const String _mycocoBaseUrl = 'https://brixta.site';
+  //static const String _mycocoBaseUrl = 'https://brixta.site';
   //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost
-  //static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
+  static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
 
   // Shared instance for sharing sessionId across all pages
   static final ApiService _instance = ApiService._internal();
@@ -526,4 +528,83 @@ class ApiService {
       throw Exception(json['error'] ?? "Failed with status ${res.statusCode}");
     }
   }
+
+  // Finance Get
+  Future<FinanceReport?> fetchLatestFinanceReport() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/finance-reports/latest");
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true && json['data'] != null) {
+        return FinanceReport.fromJson(json['data']);
+      }
+      return null;
+    }
+    throw Exception("Failed to fetch finance report: ${res.statusCode}");
+  }
+
+  Future<List<FinanceReport>> fetchFinanceReports({
+    String? reportDate,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final queryParams = <String, String>{
+      if (reportDate != null) 'reportDate': reportDate,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/finance-reports",
+    ).replace(queryParameters: queryParams);
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => FinanceReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch finance reports: ${res.statusCode}");
+  }
+
+  // Logistics Get
+  Future<LogisticsReport?> fetchLatestLogisticsReport() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/logistics-reports/latest");
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true && json['data'] != null) {
+        return LogisticsReport.fromJson(json['data']);
+      }
+      return null;
+    }
+    throw Exception("Failed to fetch logistics report: ${res.statusCode}");
+  }
+
+  Future<List<LogisticsReport>> fetchLogisticsReports({
+    String? reportDate,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final queryParams = <String, String>{
+      if (reportDate != null) 'reportDate': reportDate,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/logistics-reports",
+    ).replace(queryParameters: queryParams);
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => LogisticsReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch logistics reports: ${res.statusCode}");
+  }
+
 }

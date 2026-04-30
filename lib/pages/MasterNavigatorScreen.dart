@@ -21,7 +21,6 @@ class MasterNavigatorScreen extends StatelessWidget {
     "Human Resources",
     "Logistics",
     "Sales-Marketing",
-    "Technical-Sales",
   ];
 
   bool get isAdmin {
@@ -45,7 +44,6 @@ class MasterNavigatorScreen extends StatelessWidget {
     if (r.contains('accounts')) return Icons.receipt_long_outlined;
     if (r.contains('hr') || r.contains('human')) return Icons.groups_outlined;
     if (r.contains('sales')) return Icons.trending_up_rounded;
-    if (r.contains('technical')) return Icons.engineering_outlined;
     return Icons.business_rounded;
   }
 

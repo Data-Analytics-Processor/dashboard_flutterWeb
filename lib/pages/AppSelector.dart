@@ -10,7 +10,6 @@ import 'finance/HomePage.dart';
 import 'hr/HomePage.dart';
 import 'logistics/HomePage.dart';
 import 'sales-marketing/HomePage.dart';
-import 'technical-sales/HomePage.dart';
 
 // --- HELPER ROUTING METHOD ---
 Widget getDepartmentHomePage(String role, User user) {
@@ -23,8 +22,6 @@ Widget getDepartmentHomePage(String role, User user) {
     return HRHomePage(user: user, deptName: "Human Resources");
   if (r.contains('sales-marketing'))
     return SalesHomePage(user: user, deptName: "Sales & Marketing");
-  if (r.contains('technical-sales'))
-    return TechnicalHomePage(user: user, deptName: "Technical Sales");
 
   // Fallback
   return UnderDevelopmentScreen(user: user);
