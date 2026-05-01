@@ -568,6 +568,71 @@ class ApiService {
     throw Exception("Failed to fetch finance reports: ${res.statusCode}");
   }
 
+  // Finance Post/Patch
+  static Future<bool> createFinanceItems({
+    required String section,
+    required String reportDate,
+    required List<Map<String, dynamic>> items,
+    required String token,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_mycocoBaseUrl/$section'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'reportDate': reportDate, 'items': items}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[CREATE FINANCE ERROR] $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateFinanceItem({
+    required String section,
+    required String itemId,
+    required Map<String, dynamic> payload,
+    required String token,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$_mycocoBaseUrl/$section/$itemId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(payload),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[UPDATE FINANCE ERROR] $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteFinanceItem({
+    required String section,
+    required String itemId,
+    required String token,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_mycocoBaseUrl/$section/$itemId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[DELETE FINANCE ERROR] $e');
+      return false;
+    }
+  }
+
   // Logistics Get
   Future<LogisticsReport?> fetchLatestLogisticsReport() async {
     final url = Uri.parse("$_mycocoBaseUrl/api/logistics-reports/latest");
@@ -607,4 +672,68 @@ class ApiService {
     throw Exception("Failed to fetch logistics reports: ${res.statusCode}");
   }
 
+  // Logistics Post/Patch
+  static Future<bool> createLogisticsItems({
+    required String section,
+    required String reportDate,
+    required List<Map<String, dynamic>> items,
+    required String token,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_mycocoBaseUrl/$section'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'reportDate': reportDate, 'items': items}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[CREATE LOGISTICS ERROR] $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateLogisticsItem({
+    required String section,
+    required String itemId,
+    required Map<String, dynamic> payload,
+    required String token,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$_mycocoBaseUrl/$section/$itemId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(payload),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[UPDATE LOGISTICS ERROR] $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteLogisticsItem({
+    required String section,
+    required String itemId,
+    required String token,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_mycocoBaseUrl/$section/$itemId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[DELETE LOGISTICS ERROR] $e');
+      return false;
+    }
+  }
 }

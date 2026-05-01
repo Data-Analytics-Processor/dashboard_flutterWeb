@@ -1,8 +1,9 @@
 // lib/pages/sales-marketing/subPages/collectionData.dart
 import 'package:flutter/material.dart';
-import '../../../models/sales_reports_model.dart';
 import 'package:intl/intl.dart';
-import '../views/drillDownView.dart';
+import '../../../models/sales_reports_model.dart';
+import '../../../components/data_table_reusable.dart';
+
 class CollectionDataTab extends StatelessWidget {
   final List<CollectionData> collectionData;
   final String reportDate;
@@ -15,28 +16,8 @@ class CollectionDataTab extends StatelessWidget {
 
   // --- DARK THEME ---
   static const Color _bgDark = Color(0xFF121212);
-  static const Color _surfaceDark = Color(0xFF1E1E1E);
-  static const Color _primaryAccent = Color(0xFF4361EE);
-  static const Color _textWhite = Color(0xFFFFFFFF);
   static const Color _textGrey = Color(0xFFB3B3B3);
-  static const Color _borderColor = Color(0xFF333333);
-
-  Map<String, Map<String, List<CollectionData>>> _groupCollectionData(
-      List<CollectionData> data) {
-    Map<String, Map<String, List<CollectionData>>> grouped = {};
-    for (var item in data) {
-      String zone =
-          (item.zone.isNotEmpty && item.zone != '-') ? item.zone : 'Unknown Zone';
-      String dist = (item.district.isNotEmpty && item.district != '-')
-          ? item.district
-          : 'Unknown District';
-
-      grouped.putIfAbsent(zone, () => {});
-      grouped[zone]!.putIfAbsent(dist, () => []);
-      grouped[zone]![dist]!.add(item);
-    }
-    return grouped;
-  }
+  static const Color _successGreen = Color(0xFF22C55E);
 
   @override
   Widget build(BuildContext context) {
@@ -49,87 +30,55 @@ class CollectionDataTab extends StatelessWidget {
       );
     }
 
-    final currencyFormatter =
-        NumberFormat.currency(locale: 'en_IN', symbol: '₹');
-    final totalCollections =
-        collectionData.fold<double>(0, (sum, item) => sum + item.amount);
-    final groupedData = _groupCollectionData(collectionData);
+    final currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+    final totalCollections = collectionData.fold<double>(0, (sum, item) => sum + item.amount);
 
     return Container(
       color: _bgDark,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- HEADER ---
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Daily Collection Report",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: _textWhite,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Total Collected: ${currencyFormatter.format(totalCollections)}",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.greenAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // --- DATE BADGE ---
+        child: ReusableDataTable<CollectionData>(
+          title: "Daily Collection Report",
+          subtitle: "Total Collected: ${currencyFormatter.format(totalCollections)} | As of: $reportDate",
+          columns: const [
+            "Voucher No",
+            "Date",
+            "Party Name",
+            "Zone",
+            "District",
+            "Promoter",
+            "Amount"
+          ],
+          data: collectionData,
+          buildCells: (item) {
+            return [
+              DataCell(Text(item.voucherNo)),
+              DataCell(Text(item.date)),
+              DataCell(Text(
+                item.partyName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              )),
+              DataCell(Text(item.zone)),
+              DataCell(Text(item.district)),
+              DataCell(Text(item.salesPromoter)),
+              DataCell(
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _primaryAccent.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _successGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    "As of: $reportDate",
+                    currencyFormatter.format(item.amount),
                     style: const TextStyle(
-                      fontSize: 12,
+                      color: _successGreen,
                       fontWeight: FontWeight.bold,
-                      color: _primaryAccent,
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // --- DATA VIEW ---
-            Container(
-              decoration: BoxDecoration(
-                color: _surfaceDark,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  )
-                ],
               ),
-              child: CollectionZoneView(
-                groupedData: groupedData,
-              ),
-            ),
-          ],
+            ];
+          },
         ),
       ),
     );
