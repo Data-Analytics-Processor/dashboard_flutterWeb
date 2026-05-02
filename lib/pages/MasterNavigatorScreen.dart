@@ -21,6 +21,9 @@ class MasterNavigatorScreen extends StatelessWidget {
     "Human Resources",
     "Logistics",
     "Sales-Marketing",
+    "Accounts",
+    "Process-Quality",
+    "Purchase"
   ];
 
   bool get isAdmin {
@@ -44,6 +47,8 @@ class MasterNavigatorScreen extends StatelessWidget {
     if (r.contains('accounts')) return Icons.receipt_long_outlined;
     if (r.contains('hr') || r.contains('human')) return Icons.groups_outlined;
     if (r.contains('sales')) return Icons.trending_up_rounded;
+    if (r.contains('process') || r.contains('process quality') || r.contains('process-quality')) return Icons.factory_outlined;
+    if (r.contains('purchase')) return Icons.money_outlined;
     return Icons.business_rounded;
   }
 

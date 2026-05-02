@@ -11,11 +11,14 @@ import '../models/hr_reports_model.dart';
 import '../models/sales_reports_model.dart';
 import '../models/finance_reports_model.dart';
 import '../models/logistics_reports_model.dart';
+import '../models/accounts_reports_model.dart';
+import '../models/purchase_reports_model.dart';
+import '../models/process_reports_model.dart';
 
 class ApiService {
-  static const String _mycocoBaseUrl = 'https://brixta.site';
+  //static const String _mycocoBaseUrl = 'https://brixta.site';
   //static const String _mycocoBaseUrl = "http://10.0.2.2:8000"; // localhost
-  //static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
+  static const String _mycocoBaseUrl = "http://127.0.0.1:8000"; // localhost (web-version)
 
   // Shared instance for sharing sessionId across all pages
   static final ApiService _instance = ApiService._internal();
@@ -735,5 +738,130 @@ class ApiService {
       print('[DELETE LOGISTICS ERROR] $e');
       return false;
     }
+  }
+
+  // Accounts Get
+  Future<AccountsReport?> fetchLatestAccountsReport() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/accounts-reports/latest");
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true && json['data'] != null) {
+        return AccountsReport.fromJson(json['data']);
+      }
+      return null;
+    }
+    throw Exception("Failed to fetch accounts report: ${res.statusCode}");
+  }
+
+  Future<List<AccountsReport>> fetchAccountsReports({
+    String? reportDate,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final queryParams = <String, String>{
+      if (reportDate != null) 'reportDate': reportDate,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/accounts-reports",
+    ).replace(queryParameters: queryParams);
+
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => AccountsReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch accounts reports: ${res.statusCode}");
+  }
+
+  // Process Get
+  Future<ProcessReport?> fetchLatestProcessReport() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/process-reports/latest");
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true && json['data'] != null) {
+        return ProcessReport.fromJson(json['data']);
+      }
+      return null;
+    }
+    throw Exception("Failed to fetch process report: ${res.statusCode}");
+  }
+
+  Future<List<ProcessReport>> fetchProcessReports({
+    String? reportDate,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final queryParams = <String, String>{
+      if (reportDate != null) 'reportDate': reportDate,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/process-reports",
+    ).replace(queryParameters: queryParams);
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => ProcessReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch process reports: ${res.statusCode}");
+  }
+
+  // Purchase Get
+  Future<PurchaseReport?> fetchLatestPurchaseReport() async {
+    final url = Uri.parse("$_mycocoBaseUrl/api/purchase-reports/latest");
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+
+      if (json['success'] == true && json['data'] != null) {
+        return PurchaseReport.fromJson(json['data']);
+      }
+      return null;
+    }
+    throw Exception("Failed to fetch purchase report: ${res.statusCode}");
+  }
+
+  Future<List<PurchaseReport>> fetchPurchaseReports({
+    String? reportDate,
+    String? fromDate,
+    String? toDate,
+  }) async {
+    final queryParams = <String, String>{
+      if (reportDate != null) 'reportDate': reportDate,
+      if (fromDate != null) 'fromDate': fromDate,
+      if (toDate != null) 'toDate': toDate,
+    };
+
+    final url = Uri.parse(
+      "$_mycocoBaseUrl/api/purchase-reports",
+    ).replace(queryParameters: queryParams);
+
+    final res = await http.get(url);
+    if (res.statusCode == 200) {
+      final json = jsonDecode(res.body);
+      if (json['success'] == true) {
+        return (json['data'] as List)
+            .map((e) => PurchaseReport.fromJson(e))
+            .toList();
+      }
+    }
+    throw Exception("Failed to fetch purchase reports: ${res.statusCode}");
   }
 }

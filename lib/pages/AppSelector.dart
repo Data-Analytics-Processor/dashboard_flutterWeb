@@ -10,18 +10,27 @@ import 'finance/HomePage.dart';
 import 'hr/HomePage.dart';
 import 'logistics/HomePage.dart';
 import 'sales-marketing/HomePage.dart';
+import 'accounts/HomePage.dart';
+import 'process/HomePage.dart';
+import 'purchase/HomePage.dart';
 
 // --- HELPER ROUTING METHOD ---
 Widget getDepartmentHomePage(String role, User user) {
   final r = role.toLowerCase();
   if (r.contains('logistics'))
-    return LogisticsHomePage(user: user, deptName: "Logistics");
+    {return LogisticsHomePage(user: user, deptName: "Logistics");}
   if (r.contains('finance'))
-    return FinanceHomePage(user: user, deptName: "Finance");
+    {return FinanceHomePage(user: user, deptName: "Finance");}
   if (r.contains('human resources') || r.contains('hr'))
-    return HRHomePage(user: user, deptName: "Human Resources");
+    {return HRHomePage(user: user, deptName: "Human Resources");}
   if (r.contains('sales-marketing'))
-    return SalesHomePage(user: user, deptName: "Sales & Marketing");
+    {return SalesHomePage(user: user, deptName: "Sales & Marketing");}
+  if (r.contains('accounts'))
+    {return AccountsHomePage(user: user, deptName: "Accounts");}
+  if (r.contains('process') || r.contains('process quality') || r.contains('process-quality') || r.contains('factory'))
+    {return ProcessHomePage(user: user, deptName: "Process Quality");}
+  if (r.contains('purchase'))
+    {return PurchaseHomePage(user: user, deptName: "Purchase");}
 
   // Fallback
   return UnderDevelopmentScreen(user: user);

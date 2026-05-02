@@ -1,0 +1,371 @@
+// lib/pages/ProfilePage.dart
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../models/users_model.dart';
+import '../../api/auth_service.dart';
+
+class ProfilePage extends StatelessWidget {
+  final User user;
+
+  const ProfilePage({super.key, required this.user});
+
+  // --- DARK THEME ---
+  static const Color _bgDark = Color(0xFF121212);
+  static const Color _surfaceDark = Color(0xFF1E1E1E);
+  static const Color _primaryAccent = Color(0xFF4361EE);
+  static const Color _textWhite = Color(0xFFFFFFFF);
+  static const Color _textGrey = Color(0xFFB3B3B3);
+  static const Color _borderColor = Color(0xFF333333);
+  static const Color _errorRed = Color(0xFFEF4444);
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: _surfaceDark,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Sign Out",
+            style: TextStyle(color: _textWhite, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            "Are you sure you want to sign out?",
+            style: TextStyle(color: _textGrey),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: _textGrey, fontWeight: FontWeight.w600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _errorRed,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text("Sign Out"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await AuthService().logout();
+      if (!context.mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
+  Future<void> _launchDeleteAccountUrl(BuildContext context) async {
+    final Uri url = Uri.parse(
+      'https://docs.google.com/forms/d/e/1FAIpQLScZi6YujtVrzg4VRUvpQWTRhFAGkbuJJgc07BW56EA-njT7Fw/viewform?usp=publish-editor',
+    );
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch url');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open the form. Please contact support.'),
+            backgroundColor: _errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bgDark,
+      appBar: AppBar(
+        backgroundColor: _bgDark,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "My Profile",
+          style: TextStyle(
+            color: _textWhite,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: _textWhite),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // --- AVATAR ---
+                Center(
+                  child: Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: _primaryAccent.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _primaryAccent.withOpacity(0.4),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      size: 50,
+                      color: _primaryAccent,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                Text(
+                  user.email,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: _textWhite,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user.orgRole?.toUpperCase() ?? "ADMINISTRATOR",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _primaryAccent,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                const Text(
+                  "ACCOUNT DETAILS",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _textGrey,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: _surfaceDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _borderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      _ProfileRow(
+                        icon: Icons.badge_outlined,
+                        label: "Admin ID",
+                        value: user.id,
+                      ),
+                      const Divider(color: _borderColor),
+                      _ProfileRow(
+                        icon: Icons.email_outlined,
+                        label: "Email Address",
+                        value: user.email,
+                      ),
+                      const Divider(color: _borderColor),
+                      _ProfileRow(
+                        icon: Icons.work_outline_rounded,
+                        label: "Department",
+                        value: user.jobRoles.isNotEmpty
+                            ? user.jobRoles
+                                  .map(
+                                    (r) => r.replaceAll('-', ' ').toUpperCase(),
+                                  )
+                                  .join(', ')
+                            : "General",
+                      ),
+                      const Divider(color: _borderColor),
+                      _ProfileRow(
+                        icon: Icons.security_rounded,
+                        label: "Permissions",
+                        value: "${user.permissions.length} active roles",
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                const Text(
+                  "SECURITY",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _textGrey,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: _surfaceDark,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _borderColor),
+                  ),
+                  child: ExpansionTile(
+                    iconColor: _primaryAccent,
+                    collapsedIconColor: _textGrey,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _primaryAccent.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.shield_outlined,
+                        color: _primaryAccent,
+                      ),
+                    ),
+                    title: const Text(
+                      'Privacy & Security',
+                      style: TextStyle(
+                        color: _textWhite,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    children: [
+                      ListTile(
+                        leading: const Icon(
+                          Icons.delete_outline,
+                          color: _errorRed,
+                        ),
+                        title: const Text(
+                          "Request Account Deletion",
+                          style: TextStyle(color: _errorRed),
+                        ),
+                        trailing: const Icon(
+                          Icons.open_in_new,
+                          color: _textGrey,
+                          size: 16,
+                        ),
+                        onTap: () =>
+                            _launchDeleteAccountUrl(context), // <-- YES, USED.
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                SizedBox(
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _handleLogout(context),
+                    icon: const Icon(Icons.logout_rounded, color: _errorRed),
+                    label: const Text(
+                      "Log Out",
+                      style: TextStyle(color: _errorRed),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _errorRed),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- HELPER WIDGET FOR ROWS ---
+class _ProfileRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _ProfileRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          // --- ICON ---
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: ProfilePage._primaryAccent.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: ProfilePage._primaryAccent),
+          ),
+
+          const SizedBox(width: 14),
+
+          // --- LABEL ---
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: ProfilePage._textGrey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+          const Spacer(),
+
+          // --- VALUE ---
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              style: const TextStyle(
+                fontSize: 14,
+                color: ProfilePage._textWhite,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
